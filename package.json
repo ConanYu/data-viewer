@@ -1,6 +1,6 @@
 {
   "name": "conanyu-data-viewer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "files": [
     "dist"
@@ -37,7 +37,7 @@
     "vite": "^6.3.5"
   },
   "license": "MIT",
-  "homepage": "https://github.com/conanyu/data-viewer#readme",
+  "homepage": "https://github.com/conanyu/data-viewer",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/conanyu/data-viewer.git"
