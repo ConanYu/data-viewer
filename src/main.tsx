@@ -1,7 +1,6 @@
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import DataViewer from "./lib";
-import "@arco-design/web-react/dist/css/arco.css";
 import { Input } from "@arco-design/web-react";
 import Row from "@arco-design/web-react/es/Grid/row";
 import Col from "@arco-design/web-react/es/Grid/col";

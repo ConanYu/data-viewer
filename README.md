@@ -63,6 +63,7 @@ pnpm add conanyu-data-viewer
 
 ```jsx
 import DataViewer from "conanyu-data-viewer";
+import "conanyu-data-viewer/dist/conanyu-data-viewer.css";
 
 const data = {
   users: [
@@ -77,12 +78,7 @@ const data = {
 };
 
 const App = () => {
-  return (
-    <div>
-      <h1>Data Viewer Demo</h1>
-      <DataViewer data={JSON.stringify(data)} />
-    </div>
-  );
+  return <DataViewer title="Data Viewer Demo" data={JSON.stringify(data)} />;
 };
 ```
 

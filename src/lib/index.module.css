@@ -85,7 +85,6 @@ pre.code-block {
   font-size: 1em;
   line-height: 1.5;
   border: 1px solid #aaa;
-  -webkit-font-smoothing: subpixel-antialiased;
 }
 
 div.code-container pre.code-block {

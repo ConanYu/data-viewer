@@ -12,6 +12,7 @@ import { Message, Modal, Space, Tooltip } from "@arco-design/web-react";
 import { IconCopy } from "@arco-design/web-react/icon";
 import styles from "./index.module.css";
 import Text from "@arco-design/web-react/es/Typography/Text";
+import "@arco-design/web-react/dist/css/arco.css";
 
 const dataType = ["json", "json5", "yaml"] as const;
 
@@ -132,7 +133,7 @@ const defaultInteraction: Interaction = ({ data, depth, option }) => {
     if ("type" in tryParseResult) {
       const { type, data } = tryParseResult;
       if (
-        (type !== "yaml" && data) ||
+        (type !== "yaml" && !["number", "bigint"].includes(typeof data)) ||
         (type === "yaml" &&
           !["string", "number", "bigint"].includes(typeof data))
       ) {
@@ -425,6 +426,7 @@ interface DataViewerProps {
   title?: string;
   addtionalInteraction?: Interaction;
   style?: CSSProperties;
+  withoutHeader?: boolean;
 }
 
 function DataViewer({
@@ -433,15 +435,18 @@ function DataViewer({
   title,
   addtionalInteraction,
   style,
+  withoutHeader,
 }: DataViewerProps) {
   const result = trans({ data, type });
   return (
-    <div style={style}>
-      <Header
-        title={title}
-        data={"data" in result && result.data ? result.data : undefined}
-      />
-      <pre className={styles["code-block"]}>
+    <div>
+      {!withoutHeader && (
+        <Header
+          title={title}
+          data={"data" in result && result.data ? result.data : undefined}
+        />
+      )}
+      <pre className={styles["code-block"]} style={style}>
         {!data ? (
           <></>
         ) : "error" in result ? (

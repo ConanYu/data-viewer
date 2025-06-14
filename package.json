@@ -1,9 +1,12 @@
 {
   "name": "conanyu-data-viewer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "demo.png",
+    "LICENSE",
+    "README.md"
   ],
   "main": "dist/data-viewer.umd.js",
   "module": "dist/data-viewer.es.js",
