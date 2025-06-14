@@ -4,7 +4,7 @@
 
 Parse your data locally, features shown below:
 
-![](demo.png)
+![](demo.jpeg)
 
 ## Usage
 

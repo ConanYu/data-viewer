@@ -1,3 +1,4 @@
+import "@arco-design/web-react/dist/css/arco.css";
 import _ from "lodash";
 import JSON5 from "json5";
 import YAML from "yaml";
@@ -10,9 +11,9 @@ import {
 } from "react";
 import { Message, Modal, Space, Tooltip } from "@arco-design/web-react";
 import { IconCopy } from "@arco-design/web-react/icon";
-import styles from "./index.module.css";
 import Text from "@arco-design/web-react/es/Typography/Text";
-import "@arco-design/web-react/dist/css/arco.css";
+
+import styles from "./index.module.css";
 
 const dataType = ["json", "json5", "yaml"] as const;
 
