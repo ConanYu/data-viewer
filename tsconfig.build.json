@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "dist",
+    "declaration": true,
+    "declarationDir": "dist",
+    "emitDeclarationOnly": true,
+    "rootDir": "src/lib",
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/lib", "src/vite-env.d.ts"]
+}

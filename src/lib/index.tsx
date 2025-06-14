@@ -1,0 +1,469 @@
+import _ from "lodash";
+import JSON5 from "json5";
+import YAML from "yaml";
+import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type JSX,
+} from "react";
+import { Message, Modal, Space, Tooltip } from "@arco-design/web-react";
+import { IconCopy } from "@arco-design/web-react/icon";
+import styles from "./index.module.css";
+import Text from "@arco-design/web-react/es/Typography/Text";
+
+const dataType = ["json", "json5", "yaml"] as const;
+
+type DataType = (typeof dataType)[number];
+
+const transMap: Record<DataType, (data: string) => unknown> = {
+  json: JSON.parse,
+  json5: JSON5.parse,
+  yaml: YAML.parse,
+};
+
+function trans(props: { data: string; type?: DataType }):
+  | {
+      error: string;
+    }
+  | {
+      type: DataType;
+      data: unknown;
+    } {
+  const { data, type } = props;
+  if (!type) {
+    let error;
+    for (const type of dataType) {
+      try {
+        const result = transMap[type](data);
+        if (type === "yaml" && typeof result === "string") {
+          throw new Error("");
+        }
+        return { type, data: result };
+      } catch (e) {
+        if (type === "json") {
+          error = e;
+        }
+      }
+    }
+    return { error: `${error}` };
+  }
+  try {
+    return { type, data: transMap[type](data) };
+  } catch (e) {
+    return { error: `${e}` };
+  }
+}
+
+interface HeaderProps {
+  title?: string;
+  data?: unknown;
+}
+
+function Header({ title, data }: HeaderProps) {
+  return (
+    <div style={{ marginBottom: "0.25em" }}>
+      {title || data ? (
+        <Space style={{ fontSize: "1.25em" }}>
+          {title && <Text>{title}</Text>}
+          {data ? (
+            <IconCopy
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+                Message.success("复制成功");
+              }}
+            />
+          ) : null}
+        </Space>
+      ) : null}
+    </div>
+  );
+}
+
+interface ViewerOption {
+  forceDefaultCollapseLengthGte?: number; // 强制默认折叠长度，不填则为100。
+}
+
+type InteractionResult =
+  | {
+      event?:
+        | ((e: MouseEvent) => void) // 点击回调
+        | JSX.Element; // 弹窗
+      title?: string; // Tooltip 文案
+    }
+  | undefined;
+
+type Interaction = ({}: {
+  data: unknown;
+  depth: number;
+  inModal: boolean;
+  option?: ViewerOption;
+}) => InteractionResult;
+
+const defaultInteraction: Interaction = ({ data, depth, option }) => {
+  const viewer = (data: unknown) => {
+    return (
+      <>
+        <Header title="JSON" data={data} />
+        <pre className={styles["code-block"]}>
+          <RootViewer data={data} option={option} inModal={true} />
+        </pre>
+      </>
+    );
+  };
+  if (depth > 0 && isCollapsable(data)) {
+    return {
+      event: viewer(data),
+      title: "JSON",
+    };
+  }
+  if (typeof data === "string" && data) {
+    if (data.startsWith("https://") || data.startsWith("http://")) {
+      return {
+        event: () => {
+          window.open(data, "_blank");
+        },
+        title: "link",
+      };
+    }
+    const tryParseResult = trans({ data });
+    if ("type" in tryParseResult) {
+      const { type, data } = tryParseResult;
+      if (
+        (type !== "yaml" && data) ||
+        (type === "yaml" &&
+          !["string", "number", "bigint"].includes(typeof data))
+      ) {
+        return {
+          event: viewer(tryParseResult.data),
+          title: `Serialized ${type.toUpperCase()}`,
+        };
+      }
+    }
+    if (data.length > (option?.forceDefaultCollapseLengthGte ?? 100)) {
+      return {
+        event: (
+          <pre
+            className={styles["code-block"]}
+            style={{ whiteSpace: "pre-wrap" }}
+          >
+            {data}
+          </pre>
+        ),
+        title: "long text",
+      };
+    }
+  }
+  return undefined;
+};
+
+interface InnerViewerProps {
+  data: unknown;
+  depth: number;
+  collapsed: boolean;
+  setCollapsed: Dispatch<boolean>;
+  inModal: boolean;
+  addtionalInteraction?: Interaction;
+  option?: ViewerOption;
+}
+
+function dataLength(data: unknown): number {
+  if (typeof data === "object" && data !== null) {
+    return Object.keys(data).length;
+  }
+  if (data instanceof Array) {
+    return data.length;
+  }
+  return 0;
+}
+
+function isCollapsable(arg: unknown) {
+  return arg instanceof Object && Object.keys(arg).length > 0;
+}
+
+function InnerViewer(props: InnerViewerProps) {
+  const {
+    data,
+    depth,
+    collapsed,
+    setCollapsed,
+    addtionalInteraction,
+    option,
+    inModal,
+  } = props;
+  const length = dataLength(data);
+  const [sonCollapsed, setSonCollapsed] = useState<boolean[]>(
+    Array(length).fill(false)
+  );
+  const [modalVisible, setModalVisible] = useState(false);
+  const getInteraction = () => {
+    const interactionParams = { data, depth, option, inModal };
+    return (
+      addtionalInteraction?.(interactionParams) ||
+      defaultInteraction(interactionParams)
+    );
+  };
+  const [interaction, setInteraction] = useState<InteractionResult>(
+    getInteraction()
+  );
+  useEffect(() => {
+    setInteraction(getInteraction());
+  }, [data, addtionalInteraction]);
+  useEffect(() => {
+    setSonCollapsed(Array(length).fill(false));
+  }, [length]);
+  const setCollapsedFunc = (index: number) => {
+    return (value: boolean) => {
+      if (sonCollapsed[index] !== value) {
+        const newSonCollapsed = _.cloneDeep(sonCollapsed);
+        newSonCollapsed[index] = value;
+        setSonCollapsed(newSonCollapsed);
+      }
+    };
+  };
+  const innerElement = (() => {
+    if (typeof data === "string") {
+      return (
+        <span className={styles["json-string"]}>{JSON.stringify(data)}</span>
+      );
+    } else if (
+      typeof data === "number" ||
+      typeof data === "bigint" ||
+      typeof data === "boolean" ||
+      data === null
+    ) {
+      const text = data === null ? "null" : data.toString();
+      return <span className={styles["json-literal"]}>{text}</span>;
+    } else if (data instanceof Array) {
+      if (data.length > 0) {
+        return (
+          <>
+            {"["}
+            {collapsed ? (
+              <a
+                className={styles["json-placeholder"]}
+                onClick={() => setCollapsed(false)}
+              >{`${data.length} item${data.length > 1 ? "s" : ""}`}</a>
+            ) : (
+              <ol className={styles["json-array"]}>
+                {data.map((item, index) => {
+                  return (
+                    <li key={index}>
+                      {isCollapsable(item) && (
+                        <a
+                          className={`${styles["json-toggle"]} ${
+                            sonCollapsed?.[index] ? styles["collapsed"] : ""
+                          }`}
+                          onClick={() => {
+                            setCollapsedFunc(index)(!sonCollapsed?.[index]);
+                          }}
+                        />
+                      )}
+                      <InnerViewer
+                        data={item}
+                        depth={depth + 1}
+                        collapsed={sonCollapsed?.[index]}
+                        setCollapsed={setCollapsedFunc(index)}
+                        addtionalInteraction={addtionalInteraction}
+                        option={option}
+                        inModal={inModal}
+                      />
+                      {index < data.length - 1 && <>,</>}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            {"]"}
+          </>
+        );
+      } else {
+        return <>{"[]"}</>;
+      }
+    } else if (typeof data === "object") {
+      let keyCount = Object.keys(data).length;
+      if (keyCount > 0) {
+        return (
+          <>
+            {"{"}
+            {collapsed ? (
+              <a
+                className={styles["json-placeholder"]}
+                onClick={() => setCollapsed(false)}
+              >{`${keyCount} item${keyCount > 1 ? "s" : ""}`}</a>
+            ) : (
+              <ul className={styles["json-dict"]}>
+                {Object.entries(data).map(([key, son], index) => {
+                  const keyRepr = (
+                    <span className={styles["json-string"]}>
+                      {JSON.stringify(key)}
+                    </span>
+                  );
+                  return (
+                    <li key={key}>
+                      {isCollapsable(son) && (
+                        <a
+                          className={`${styles["json-toggle"]} ${
+                            sonCollapsed?.[index] ? styles["collapsed"] : ""
+                          }`}
+                          onClick={() => {
+                            setCollapsedFunc(index)(!sonCollapsed?.[index]);
+                          }}
+                        />
+                      )}
+                      {keyRepr}
+                      {": "}
+                      <InnerViewer
+                        data={son}
+                        depth={depth + 1}
+                        collapsed={sonCollapsed?.[index]}
+                        setCollapsed={setCollapsedFunc(index)}
+                        addtionalInteraction={addtionalInteraction}
+                        option={option}
+                        inModal={inModal}
+                      />
+                      {index !== keyCount - 1 && <>,</>}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {"}"}
+          </>
+        );
+      } else {
+        return <>{"{}"}</>;
+      }
+    }
+  })();
+  return (
+    <>
+      {interaction && (
+        <Tooltip content={interaction.title}>
+          <div
+            className={styles["circle-button"]}
+            onClick={(e) => {
+              if (typeof interaction.event === "function") {
+                interaction.event(e.nativeEvent);
+              } else {
+                setModalVisible(true);
+              }
+            }}
+          />
+        </Tooltip>
+      )}
+      {innerElement}
+      {interaction?.event && typeof interaction.event !== "function" && (
+        <Modal
+          visible={modalVisible}
+          onCancel={() => {
+            setModalVisible(false);
+          }}
+          style={{
+            width: "100%",
+            maxWidth: "85vw",
+          }}
+          cancelButtonProps={{ style: { display: "none" } }}
+          okButtonProps={{ style: { display: "none" } }}
+          focusLock={false}
+          autoFocus={false}
+          closable={false}
+          footer={null}
+        >
+          <div className={styles["code-container"]}>{interaction.event}</div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+interface ViewerProps {
+  data: unknown;
+  option?: ViewerOption;
+  addtionalInteraction?: Interaction;
+}
+
+interface RootViewerProps extends ViewerProps {
+  inModal: boolean;
+}
+
+function RootViewer(props: RootViewerProps) {
+  const { data, option, addtionalInteraction, inModal } = props;
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <>
+      {isCollapsable(data) && (
+        <a
+          className={`${styles["json-toggle"]} ${
+            collapsed ? styles["collapsed"] : ""
+          }`}
+          onClick={() => setCollapsed(!collapsed)}
+        />
+      )}
+      <InnerViewer
+        data={data}
+        depth={0}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        option={option}
+        addtionalInteraction={addtionalInteraction}
+        inModal={inModal}
+      />
+    </>
+  );
+}
+
+function Viewer(props: ViewerProps) {
+  return <RootViewer {...props} inModal={false} />;
+}
+
+interface DataViewerProps {
+  data: string;
+  type?: DataType;
+  title?: string;
+  addtionalInteraction?: Interaction;
+  style?: CSSProperties;
+}
+
+function DataViewer({
+  data,
+  type,
+  title,
+  addtionalInteraction,
+  style,
+}: DataViewerProps) {
+  const result = trans({ data, type });
+  return (
+    <div style={style}>
+      <Header
+        title={title}
+        data={"data" in result && result.data ? result.data : undefined}
+      />
+      <pre className={styles["code-block"]}>
+        {!data ? (
+          <></>
+        ) : "error" in result ? (
+          <p>{result.error}</p>
+        ) : (
+          <Viewer
+            data={result.data}
+            addtionalInteraction={addtionalInteraction}
+          />
+        )}
+      </pre>
+    </div>
+  );
+}
+
+export default DataViewer;
+
+export {
+  dataType,
+  type DataType,
+  type DataViewerProps,
+  type ViewerOption,
+  type InteractionResult,
+  type Interaction,
+};
