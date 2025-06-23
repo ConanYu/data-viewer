@@ -64,20 +64,40 @@ interface HeaderProps {
 }
 
 function Header({ title, data }: HeaderProps) {
+  const copyElement = (copyType: DataType) => (
+    <div
+      key={copyType}
+      style={{
+        lineHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        cursor: "pointer",
+      }}
+      onClick={() => {
+        const content = {
+          json: () => JSON.stringify(data, null, 2),
+          json5: () => JSON5.stringify(data, null, 2),
+          yaml: () => YAML.stringify(data, null, 2),
+        }[copyType]();
+        navigator.clipboard.writeText(content);
+        Message.success(`Copy ${copyType.toUpperCase()} Success`);
+      }}
+    >
+      <IconCopy />
+      <Text style={{ fontSize: "6px" }}>{copyType.toUpperCase()}</Text>
+    </div>
+  );
   return (
     <div style={{ marginBottom: "0.25em" }}>
       {title || data ? (
-        <Space style={{ fontSize: "1.25em" }}>
-          {title && <Text>{title}</Text>}
-          {data ? (
-            <IconCopy
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-                Message.success("复制成功");
-              }}
-            />
-          ) : null}
+        <Space>
+          {title && (
+            <Text key="title" style={{ fontSize: "1.25em" }}>
+              {title}
+            </Text>
+          )}
+          {data ? dataType.map((type) => copyElement(type)) : null}
         </Space>
       ) : null}
     </div>
@@ -108,7 +128,7 @@ const defaultInteraction: Interaction = ({ data, depth, option }) => {
   const viewer = (data: unknown) => {
     return (
       <>
-        <Header title="JSON" data={data} />
+        <Header title="Parse Result" data={data} />
         <pre className={styles["code-block"]}>
           <RootViewer data={data} option={option} inModal={true} />
         </pre>
@@ -298,8 +318,19 @@ function InnerViewer(props: InnerViewerProps) {
             ) : (
               <ul className={styles["json-dict"]}>
                 {Object.entries(data).map(([key, son], index) => {
+                  const isCollapsableSon = isCollapsable(son);
                   const keyRepr = (
-                    <span className={styles["json-string"]}>
+                    <span
+                      className={styles["json-string"]}
+                      style={{
+                        cursor: isCollapsableSon ? "pointer" : undefined,
+                      }}
+                      onClick={() => {
+                        if (isCollapsableSon) {
+                          setCollapsedFunc(index)(!sonCollapsed?.[index]);
+                        }
+                      }}
+                    >
                       {JSON.stringify(key)}
                     </span>
                   );
