@@ -39,7 +39,11 @@ function trans(props: { data: string; type?: DataType }):
     for (const type of dataType) {
       try {
         const result = transMap[type](data);
-        if (type === "yaml" && typeof result === "string") {
+        if (
+          type === "yaml" &&
+          (result === null ||
+            ["bigint", "number", "string", "boolean"].includes(typeof result))
+        ) {
           throw new Error("");
         }
         return { type, data: result };
@@ -374,17 +378,27 @@ function InnerViewer(props: InnerViewerProps) {
   return (
     <>
       {interaction && (
-        <Tooltip content={interaction.title}>
-          <div
-            className={styles["circle-button"]}
+        <Tooltip
+          className="conanyu-data-viewer-interaction-tooltip"
+          content={interaction.title}
+        >
+          <a
+            href={`operating: ${interaction.title}`}
             onClick={(e) => {
-              if (typeof interaction.event === "function") {
-                interaction.event(e.nativeEvent);
-              } else {
-                setModalVisible(true);
-              }
+              e.preventDefault();
             }}
-          />
+          >
+            <div
+              className={styles["circle-button"]}
+              onClick={(e) => {
+                if (typeof interaction.event === "function") {
+                  interaction.event(e.nativeEvent);
+                } else {
+                  setModalVisible(true);
+                }
+              }}
+            />
+          </a>
         </Tooltip>
       )}
       {innerElement}
