@@ -126,15 +126,26 @@ type Interaction = ({}: {
   depth: number;
   inModal: boolean;
   option?: ViewerOption;
+  addtionalInteraction?: Interaction;
 }) => InteractionResult;
 
-const defaultInteraction: Interaction = ({ data, depth, option }) => {
+const defaultInteraction: Interaction = ({
+  data,
+  depth,
+  option,
+  addtionalInteraction,
+}) => {
   const viewer = (data: unknown) => {
     return (
       <>
         <Header title="Parse Result" data={data} />
         <pre className={styles["code-block"]}>
-          <RootViewer data={data} option={option} inModal={true} />
+          <RootViewer
+            data={data}
+            option={option}
+            inModal={true}
+            addtionalInteraction={addtionalInteraction}
+          />
         </pre>
       </>
     );
@@ -225,7 +236,13 @@ function InnerViewer(props: InnerViewerProps) {
   );
   const [modalVisible, setModalVisible] = useState(false);
   const getInteraction = () => {
-    const interactionParams = { data, depth, option, inModal };
+    const interactionParams = {
+      data,
+      depth,
+      option,
+      inModal,
+      addtionalInteraction,
+    };
     return (
       addtionalInteraction?.(interactionParams) ||
       defaultInteraction(interactionParams)
@@ -382,23 +399,25 @@ function InnerViewer(props: InnerViewerProps) {
           className="conanyu-data-viewer-interaction-tooltip"
           content={interaction.title}
         >
-          <a
-            href={`operating: ${interaction.title}`}
-            onClick={(e) => {
-              e.preventDefault();
-            }}
-          >
-            <div
-              className={styles["circle-button"]}
+          <span>
+            <a
+              href={`operating: ${interaction.title}`}
               onClick={(e) => {
-                if (typeof interaction.event === "function") {
-                  interaction.event(e.nativeEvent);
-                } else {
-                  setModalVisible(true);
-                }
+                e.preventDefault();
               }}
-            />
-          </a>
+            >
+              <div
+                className={styles["circle-button"]}
+                onClick={(e) => {
+                  if (typeof interaction.event === "function") {
+                    interaction.event(e.nativeEvent);
+                  } else {
+                    setModalVisible(true);
+                  }
+                }}
+              />
+            </a>
+          </span>
         </Tooltip>
       )}
       {innerElement}
