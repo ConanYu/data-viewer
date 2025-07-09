@@ -8,7 +8,8 @@
     "emitDeclarationOnly": true,
     "rootDir": "src/lib",
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "lib": ["es2017", "dom"]
   },
   "include": ["src/lib", "src/vite-env.d.ts"]
 }

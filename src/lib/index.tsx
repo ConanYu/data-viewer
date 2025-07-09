@@ -4,6 +4,7 @@ import JSON5 from "json5";
 import YAML from "yaml";
 import {
   useEffect,
+  useMemo,
   useState,
   type CSSProperties,
   type Dispatch,
@@ -235,7 +236,7 @@ function InnerViewer(props: InnerViewerProps) {
     Array(length).fill(false)
   );
   const [modalVisible, setModalVisible] = useState(false);
-  const getInteraction = () => {
+  const interaction = useMemo(() => {
     const interactionParams = {
       data,
       depth,
@@ -247,12 +248,6 @@ function InnerViewer(props: InnerViewerProps) {
       addtionalInteraction?.(interactionParams) ||
       defaultInteraction(interactionParams)
     );
-  };
-  const [interaction, setInteraction] = useState<InteractionResult>(
-    getInteraction()
-  );
-  useEffect(() => {
-    setInteraction(getInteraction());
   }, [data, addtionalInteraction]);
   useEffect(() => {
     setSonCollapsed(Array(length).fill(false));
@@ -398,6 +393,7 @@ function InnerViewer(props: InnerViewerProps) {
         <Tooltip
           className="conanyu-data-viewer-interaction-tooltip"
           content={interaction.title}
+          getPopupContainer={(e) => e.parentNode!.parentNode as Element}
         >
           <span>
             <a
