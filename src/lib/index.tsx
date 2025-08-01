@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   type Dispatch,
   type JSX,
+  type ReactNode,
 } from "react";
 import { Message, Modal, Space, Tooltip } from "@arco-design/web-react";
 import { IconCopy } from "@arco-design/web-react/icon";
@@ -118,7 +119,7 @@ type InteractionResult =
       event?:
         | ((e: MouseEvent) => void) // 点击回调
         | JSX.Element; // 弹窗
-      title?: string; // Tooltip 文案
+      title?: ReactNode; // Tooltip 文案
     }
   | undefined;
 
