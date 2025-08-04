@@ -120,6 +120,7 @@ type InteractionResult =
         | ((e: MouseEvent) => void) // 点击回调
         | JSX.Element; // 弹窗
       title?: ReactNode; // Tooltip 文案
+      isLowPriority?: boolean; // 是否低优先级
     }
   | undefined;
 
@@ -245,10 +246,11 @@ function InnerViewer(props: InnerViewerProps) {
       inModal,
       addtionalInteraction,
     };
-    return (
-      addtionalInteraction?.(interactionParams) ||
-      defaultInteraction(interactionParams)
-    );
+    const result = addtionalInteraction?.(interactionParams);
+    if (result?.isLowPriority) {
+      return defaultInteraction(interactionParams) || result;
+    }
+    return result || defaultInteraction(interactionParams);
   }, [data, addtionalInteraction]);
   useEffect(() => {
     setSonCollapsed(Array(length).fill(false));
