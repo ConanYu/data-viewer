@@ -185,14 +185,26 @@ const defaultInteraction: Interaction = ({
     if (data.length > (option?.forceDefaultCollapseLengthGte ?? 100)) {
       return {
         event: (
-          <pre
-            className={styles["code-block"]}
-            style={{ whiteSpace: "pre-wrap" }}
-          >
-            {data}
-          </pre>
+          <div>
+            <Space style={{ marginBottom: "0.25em" }}>
+              <Text style={{ fontSize: "1.25em" }}>Long Text</Text>
+              <IconCopy
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  navigator.clipboard.writeText(data);
+                  Message.success("Copy Success");
+                }}
+              />
+            </Space>
+            <pre
+              className={styles["code-block"]}
+              style={{ whiteSpace: "pre-wrap" }}
+            >
+              {data}
+            </pre>
+          </div>
         ),
-        title: "long text",
+        title: "Long Text",
       };
     }
   }
@@ -400,7 +412,11 @@ function InnerViewer(props: InnerViewerProps) {
         >
           <span>
             <a
-              href={`operating: ${interaction.title}`}
+              href={
+                typeof interaction.title === "string"
+                  ? `operating: ${interaction.title}`
+                  : undefined
+              }
               onClick={(e) => {
                 e.preventDefault();
               }}
