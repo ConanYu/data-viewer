@@ -129,14 +129,14 @@ type Interaction = ({}: {
   depth: number;
   inModal: boolean;
   option?: ViewerOption;
-  addtionalInteraction?: Interaction;
+  additionalInteraction?: Interaction;
 }) => InteractionResult;
 
 const defaultInteraction: Interaction = ({
   data,
   depth,
   option,
-  addtionalInteraction,
+  additionalInteraction,
 }) => {
   const viewer = (data: unknown) => {
     return (
@@ -147,7 +147,7 @@ const defaultInteraction: Interaction = ({
             data={data}
             option={option}
             inModal={true}
-            addtionalInteraction={addtionalInteraction}
+            additionalInteraction={additionalInteraction}
           />
         </pre>
       </>
@@ -217,7 +217,7 @@ interface InnerViewerProps {
   collapsed: boolean;
   setCollapsed: Dispatch<boolean>;
   inModal: boolean;
-  addtionalInteraction?: Interaction;
+  additionalInteraction?: Interaction;
   option?: ViewerOption;
 }
 
@@ -241,7 +241,7 @@ function InnerViewer(props: InnerViewerProps) {
     depth,
     collapsed,
     setCollapsed,
-    addtionalInteraction,
+    additionalInteraction,
     option,
     inModal,
   } = props;
@@ -256,14 +256,14 @@ function InnerViewer(props: InnerViewerProps) {
       depth,
       option,
       inModal,
-      addtionalInteraction,
+      additionalInteraction,
     };
-    const result = addtionalInteraction?.(interactionParams);
+    const result = additionalInteraction?.(interactionParams);
     if (result?.isLowPriority) {
       return defaultInteraction(interactionParams) || result;
     }
     return result || defaultInteraction(interactionParams);
-  }, [data, addtionalInteraction]);
+  }, [data, additionalInteraction]);
   useEffect(() => {
     setSonCollapsed(Array(length).fill(false));
   }, [length]);
@@ -319,7 +319,7 @@ function InnerViewer(props: InnerViewerProps) {
                         depth={depth + 1}
                         collapsed={sonCollapsed?.[index]}
                         setCollapsed={setCollapsedFunc(index)}
-                        addtionalInteraction={addtionalInteraction}
+                        additionalInteraction={additionalInteraction}
                         option={option}
                         inModal={inModal}
                       />
@@ -384,7 +384,7 @@ function InnerViewer(props: InnerViewerProps) {
                         depth={depth + 1}
                         collapsed={sonCollapsed?.[index]}
                         setCollapsed={setCollapsedFunc(index)}
-                        addtionalInteraction={addtionalInteraction}
+                        additionalInteraction={additionalInteraction}
                         option={option}
                         inModal={inModal}
                       />
@@ -463,7 +463,7 @@ function InnerViewer(props: InnerViewerProps) {
 interface ViewerProps {
   data: unknown;
   option?: ViewerOption;
-  addtionalInteraction?: Interaction;
+  additionalInteraction?: Interaction;
 }
 
 interface RootViewerProps extends ViewerProps {
@@ -471,7 +471,7 @@ interface RootViewerProps extends ViewerProps {
 }
 
 function RootViewer(props: RootViewerProps) {
-  const { data, option, addtionalInteraction, inModal } = props;
+  const { data, option, additionalInteraction, inModal } = props;
   const [collapsed, setCollapsed] = useState(false);
   return (
     <>
@@ -489,7 +489,7 @@ function RootViewer(props: RootViewerProps) {
         collapsed={collapsed}
         setCollapsed={setCollapsed}
         option={option}
-        addtionalInteraction={addtionalInteraction}
+        additionalInteraction={additionalInteraction}
         inModal={inModal}
       />
     </>
@@ -504,7 +504,7 @@ interface DataViewerProps {
   data: string;
   type?: DataType;
   title?: string;
-  addtionalInteraction?: Interaction;
+  additionalInteraction?: Interaction;
   style?: CSSProperties;
   withoutHeader?: boolean;
 }
@@ -513,7 +513,7 @@ function DataViewer({
   data,
   type,
   title,
-  addtionalInteraction,
+  additionalInteraction,
   style,
   withoutHeader,
 }: DataViewerProps) {
@@ -534,7 +534,7 @@ function DataViewer({
         ) : (
           <Viewer
             data={result.data}
-            addtionalInteraction={addtionalInteraction}
+            additionalInteraction={additionalInteraction}
           />
         )}
       </pre>
