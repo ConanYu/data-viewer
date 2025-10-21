@@ -1,6 +1,6 @@
 {
   "name": "conanyu-data-viewer",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "type": "module",
   "files": [
     "dist"
@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.1",
-    "json5": "^2.2.3",
+    "json-bigint": "^1.0.0",
+    "json5-bigint": "^2.2.3",
     "lodash": "^4.17.21",
     "react": "^18",
     "react-dom": "^18",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@types/json-bigint": "^1.0.4",
     "@types/lodash": "^4.17.17",
     "@types/react": "^18",
     "@types/react-dom": "^18",

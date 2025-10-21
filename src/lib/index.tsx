@@ -1,7 +1,7 @@
-import "@arco-design/web-react/dist/css/arco.css";
-import _ from "lodash";
-import JSON5 from "json5";
-import YAML from "yaml";
+import '@arco-design/web-react/dist/css/arco.css';
+import _ from 'lodash';
+import JSON5 from 'json5-bigint';
+import YAML from 'yaml';
 import {
   useEffect,
   useMemo,
@@ -10,21 +10,24 @@ import {
   type Dispatch,
   type JSX,
   type ReactNode,
-} from "react";
-import { Message, Modal, Space, Tooltip } from "@arco-design/web-react";
-import { IconCopy } from "@arco-design/web-react/icon";
-import Text from "@arco-design/web-react/es/Typography/Text";
+} from 'react';
+import { Message, Modal, Space, Tooltip } from '@arco-design/web-react';
+import { IconCopy } from '@arco-design/web-react/icon';
+import Text from '@arco-design/web-react/es/Typography/Text';
+import styles from './index.module.css';
+import JSONbig from 'json-bigint';
+const JSON = JSONbig({ useNativeBigInt: true });
 
-import styles from "./index.module.css";
-
-const dataType = ["json", "json5", "yaml"] as const;
+const dataType = ['json', 'json5', 'yaml'] as const;
 
 type DataType = (typeof dataType)[number];
 
-const transMap: Record<DataType, (data: string) => unknown> = {
+type TransFunc = (text: string) => unknown;
+
+const transMap: Record<DataType, TransFunc> = {
   json: JSON.parse,
   json5: JSON5.parse,
-  yaml: YAML.parse,
+  yaml: (text: string) => YAML.parse(text, { intAsBigInt: true }),
 };
 
 function trans(props: { data: string; type?: DataType }):
@@ -42,15 +45,15 @@ function trans(props: { data: string; type?: DataType }):
       try {
         const result = transMap[type](data);
         if (
-          type === "yaml" &&
+          type === 'yaml' &&
           (result === null ||
-            ["bigint", "number", "string", "boolean"].includes(typeof result))
+            ['bigint', 'number', 'string', 'boolean'].includes(typeof result))
         ) {
-          throw new Error("");
+          throw new Error('');
         }
         return { type, data: result };
       } catch (e) {
-        if (type === "json") {
+        if (type === 'json5') {
           error = e;
         }
       }
@@ -75,10 +78,10 @@ function Header({ title, data }: HeaderProps) {
       key={copyType}
       style={{
         lineHeight: 0,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        cursor: "pointer",
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        cursor: 'pointer',
       }}
       onClick={() => {
         const content = {
@@ -91,19 +94,19 @@ function Header({ title, data }: HeaderProps) {
       }}
     >
       <IconCopy />
-      <Text style={{ fontSize: "6px" }}>{copyType.toUpperCase()}</Text>
+      <Text style={{ fontSize: '6px' }}>{copyType.toUpperCase()}</Text>
     </div>
   );
   return (
-    <div style={{ marginBottom: "0.25em" }}>
+    <div style={{ marginBottom: '0.25em' }}>
       {title || data ? (
         <Space>
           {title && (
-            <Text key="title" style={{ fontSize: "1.25em" }}>
+            <Text key="title" style={{ fontSize: '1.25em' }}>
               {title}
             </Text>
           )}
-          {data ? dataType.map((type) => copyElement(type)) : null}
+          {data ? dataType.map(type => copyElement(type)) : null}
         </Space>
       ) : null}
     </div>
@@ -124,7 +127,7 @@ type InteractionResult =
     }
   | undefined;
 
-type Interaction = ({}: {
+type Interaction = (r: {
   data: unknown;
   depth: number;
   inModal: boolean;
@@ -142,7 +145,7 @@ const defaultInteraction: Interaction = ({
     return (
       <>
         <Header title="Parse Result" data={data} />
-        <pre className={styles["code-block"]}>
+        <pre className={styles['code-block']}>
           <RootViewer
             data={data}
             option={option}
@@ -156,25 +159,25 @@ const defaultInteraction: Interaction = ({
   if (depth > 0 && isCollapsable(data)) {
     return {
       event: viewer(data),
-      title: "JSON",
+      title: 'JSON',
     };
   }
-  if (typeof data === "string" && data) {
-    if (data.startsWith("https://") || data.startsWith("http://")) {
+  if (typeof data === 'string' && data) {
+    if (data.startsWith('https://') || data.startsWith('http://')) {
       return {
         event: () => {
-          window.open(data, "_blank");
+          window.open(data, '_blank');
         },
-        title: "link",
+        title: 'link',
       };
     }
     const tryParseResult = trans({ data });
-    if ("type" in tryParseResult) {
+    if ('type' in tryParseResult) {
       const { type, data } = tryParseResult;
       if (
-        (type !== "yaml" && !["number", "bigint"].includes(typeof data)) ||
-        (type === "yaml" &&
-          !["string", "number", "bigint"].includes(typeof data))
+        (type !== 'yaml' && !['number', 'bigint'].includes(typeof data)) ||
+        (type === 'yaml' &&
+          !['string', 'number', 'bigint'].includes(typeof data))
       ) {
         return {
           event: viewer(tryParseResult.data),
@@ -186,25 +189,25 @@ const defaultInteraction: Interaction = ({
       return {
         event: (
           <div>
-            <Space style={{ marginBottom: "0.25em" }}>
-              <Text style={{ fontSize: "1.25em" }}>Long Text</Text>
+            <Space style={{ marginBottom: '0.25em' }}>
+              <Text style={{ fontSize: '1.25em' }}>Long Text</Text>
               <IconCopy
-                style={{ cursor: "pointer" }}
+                style={{ cursor: 'pointer' }}
                 onClick={() => {
                   navigator.clipboard.writeText(data);
-                  Message.success("Copy Success");
+                  Message.success('Copy Success');
                 }}
               />
             </Space>
             <pre
-              className={styles["code-block"]}
-              style={{ whiteSpace: "pre-wrap" }}
+              className={styles['code-block']}
+              style={{ whiteSpace: 'pre-wrap' }}
             >
               {data}
             </pre>
           </div>
         ),
-        title: "Long Text",
+        title: 'Long Text',
       };
     }
   }
@@ -222,7 +225,7 @@ interface InnerViewerProps {
 }
 
 function dataLength(data: unknown): number {
-  if (typeof data === "object" && data !== null) {
+  if (typeof data === 'object' && data !== null) {
     return Object.keys(data).length;
   }
   if (data instanceof Array) {
@@ -247,7 +250,7 @@ function InnerViewer(props: InnerViewerProps) {
   } = props;
   const length = dataLength(data);
   const [sonCollapsed, setSonCollapsed] = useState<boolean[]>(
-    Array(length).fill(false)
+    Array(length).fill(false),
   );
   const [modalVisible, setModalVisible] = useState(false);
   const interaction = useMemo(() => {
@@ -277,37 +280,38 @@ function InnerViewer(props: InnerViewerProps) {
     };
   };
   const innerElement = (() => {
-    if (typeof data === "string") {
+    if (typeof data === 'string') {
       return (
-        <span className={styles["json-string"]}>{JSON.stringify(data)}</span>
+        <span className={styles['json-string']}>{JSON.stringify(data)}</span>
       );
     } else if (
-      typeof data === "number" ||
-      typeof data === "bigint" ||
-      typeof data === "boolean" ||
+      typeof data === 'number' ||
+      typeof data === 'bigint' ||
+      typeof data === 'boolean' ||
       data === null
     ) {
-      const text = data === null ? "null" : data.toString();
-      return <span className={styles["json-literal"]}>{text}</span>;
+      console.log(data, 'data');
+      const text = data === null ? 'null' : data.toString();
+      return <span className={styles['json-literal']}>{text}</span>;
     } else if (data instanceof Array) {
       if (data.length > 0) {
         return (
           <>
-            {"["}
+            {'['}
             {collapsed ? (
               <a
-                className={styles["json-placeholder"]}
+                className={styles['json-placeholder']}
                 onClick={() => setCollapsed(false)}
-              >{`${data.length} item${data.length > 1 ? "s" : ""}`}</a>
+              >{`${data.length} item${data.length > 1 ? 's' : ''}`}</a>
             ) : (
-              <ol className={styles["json-array"]}>
+              <ol className={styles['json-array']}>
                 {data.map((item, index) => {
                   return (
                     <li key={index}>
                       {isCollapsable(item) && (
                         <a
-                          className={`${styles["json-toggle"]} ${
-                            sonCollapsed?.[index] ? styles["collapsed"] : ""
+                          className={`${styles['json-toggle']} ${
+                            sonCollapsed?.[index] ? styles['collapsed'] : ''
                           }`}
                           onClick={() => {
                             setCollapsedFunc(index)(!sonCollapsed?.[index]);
@@ -329,32 +333,32 @@ function InnerViewer(props: InnerViewerProps) {
                 })}
               </ol>
             )}
-            {"]"}
+            {']'}
           </>
         );
       } else {
-        return <>{"[]"}</>;
+        return <>{'[]'}</>;
       }
-    } else if (typeof data === "object") {
-      let keyCount = Object.keys(data).length;
+    } else if (typeof data === 'object') {
+      const keyCount = Object.keys(data).length;
       if (keyCount > 0) {
         return (
           <>
-            {"{"}
+            {'{'}
             {collapsed ? (
               <a
-                className={styles["json-placeholder"]}
+                className={styles['json-placeholder']}
                 onClick={() => setCollapsed(false)}
-              >{`${keyCount} item${keyCount > 1 ? "s" : ""}`}</a>
+              >{`${keyCount} item${keyCount > 1 ? 's' : ''}`}</a>
             ) : (
-              <ul className={styles["json-dict"]}>
+              <ul className={styles['json-dict']}>
                 {Object.entries(data).map(([key, son], index) => {
                   const isCollapsableSon = isCollapsable(son);
                   const keyRepr = (
                     <span
-                      className={styles["json-string"]}
+                      className={styles['json-string']}
                       style={{
-                        cursor: isCollapsableSon ? "pointer" : undefined,
+                        cursor: isCollapsableSon ? 'pointer' : undefined,
                       }}
                       onClick={() => {
                         if (isCollapsableSon) {
@@ -369,8 +373,8 @@ function InnerViewer(props: InnerViewerProps) {
                     <li key={key}>
                       {isCollapsable(son) && (
                         <a
-                          className={`${styles["json-toggle"]} ${
-                            sonCollapsed?.[index] ? styles["collapsed"] : ""
+                          className={`${styles['json-toggle']} ${
+                            sonCollapsed?.[index] ? styles['collapsed'] : ''
                           }`}
                           onClick={() => {
                             setCollapsedFunc(index)(!sonCollapsed?.[index]);
@@ -378,7 +382,7 @@ function InnerViewer(props: InnerViewerProps) {
                         />
                       )}
                       {keyRepr}
-                      {": "}
+                      {': '}
                       <InnerViewer
                         data={son}
                         depth={depth + 1}
@@ -394,11 +398,11 @@ function InnerViewer(props: InnerViewerProps) {
                 })}
               </ul>
             )}
-            {"}"}
+            {'}'}
           </>
         );
       } else {
-        return <>{"{}"}</>;
+        return <>{'{}'}</>;
       }
     }
   })();
@@ -408,23 +412,23 @@ function InnerViewer(props: InnerViewerProps) {
         <Tooltip
           className="conanyu-data-viewer-interaction-tooltip"
           content={interaction.title}
-          getPopupContainer={(e) => e.parentNode!.parentNode as Element}
+          getPopupContainer={e => e.parentNode!.parentNode as Element}
         >
           <span>
             <a
               href={
-                typeof interaction.title === "string"
+                typeof interaction.title === 'string'
                   ? `operating: ${interaction.title}`
                   : undefined
               }
-              onClick={(e) => {
+              onClick={e => {
                 e.preventDefault();
               }}
             >
               <div
-                className={styles["circle-button"]}
-                onClick={(e) => {
-                  if (typeof interaction.event === "function") {
+                className={styles['circle-button']}
+                onClick={e => {
+                  if (typeof interaction.event === 'function') {
                     interaction.event(e.nativeEvent);
                   } else {
                     setModalVisible(true);
@@ -436,24 +440,24 @@ function InnerViewer(props: InnerViewerProps) {
         </Tooltip>
       )}
       {innerElement}
-      {interaction?.event && typeof interaction.event !== "function" && (
+      {interaction?.event && typeof interaction.event !== 'function' && (
         <Modal
           visible={modalVisible}
           onCancel={() => {
             setModalVisible(false);
           }}
           style={{
-            width: "100%",
-            maxWidth: "85vw",
+            width: '100%',
+            maxWidth: '85vw',
           }}
-          cancelButtonProps={{ style: { display: "none" } }}
-          okButtonProps={{ style: { display: "none" } }}
+          cancelButtonProps={{ style: { display: 'none' } }}
+          okButtonProps={{ style: { display: 'none' } }}
           focusLock={false}
           autoFocus={false}
           closable={false}
           footer={null}
         >
-          <div className={styles["code-container"]}>{interaction.event}</div>
+          <div className={styles['code-container']}>{interaction.event}</div>
         </Modal>
       )}
     </>
@@ -477,8 +481,8 @@ function RootViewer(props: RootViewerProps) {
     <>
       {isCollapsable(data) && (
         <a
-          className={`${styles["json-toggle"]} ${
-            collapsed ? styles["collapsed"] : ""
+          className={`${styles['json-toggle']} ${
+            collapsed ? styles['collapsed'] : ''
           }`}
           onClick={() => setCollapsed(!collapsed)}
         />
@@ -523,13 +527,13 @@ function DataViewer({
       {!withoutHeader && (
         <Header
           title={title}
-          data={"data" in result && result.data ? result.data : undefined}
+          data={'data' in result && result.data ? result.data : undefined}
         />
       )}
-      <pre className={styles["code-block"]} style={style}>
+      <pre className={styles['code-block']} style={style}>
         {!data ? (
           <></>
-        ) : "error" in result ? (
+        ) : 'error' in result ? (
           <p>{result.error}</p>
         ) : (
           <Viewer
