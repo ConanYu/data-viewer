@@ -235,7 +235,7 @@ function dataLength(data: unknown): number {
 }
 
 function isCollapsable(arg: unknown) {
-  return arg instanceof Object && Object.keys(arg).length > 0;
+  return typeof arg === 'object' && arg !== null && Object.keys(arg).length > 0;
 }
 
 function InnerViewer(props: InnerViewerProps) {
@@ -290,7 +290,6 @@ function InnerViewer(props: InnerViewerProps) {
       typeof data === 'boolean' ||
       data === null
     ) {
-      console.log(data, 'data');
       const text = data === null ? 'null' : data.toString();
       return <span className={styles['json-literal']}>{text}</span>;
     } else if (data instanceof Array) {
