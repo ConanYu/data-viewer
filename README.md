@@ -1,69 +1,49 @@
 # Data Viewer
 
-## Introduction
+## 介绍
 
-Parse your data locally, features shown below:
+在本地展示数据的可视化工具，效果如下：
 
 ![](demo.jpeg)
 
-## Usage
+## 使用方法
 
-### Online
+### 在线使用
 
-Visit the demo page: https://conanyu.github.io/data-viewer
+访问网页：https://conanyu.github.io/data-viewer
 
-### Local deployment
+### 本地部署
 
-Before starting, ensure you have the following installed:
+在开始之前，需要保证已经安装了以下工具：
 
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [pnpm](https://pnpm.io/) (v8 or higher)
+- [Node.js](https://nodejs.org/)
+- [pnpm](https://pnpm.io/)
 
-1. Clone the repository and navigate to the project directory:
+克隆项目并进入项目目录安装依赖部署：
 
 ```bash
 git clone https://github.com/conanyu/data-viewer.git
-cd data-viewer
-```
-
-2. Install project dependencies:
-
-```bash
+cd data-viewer/app/page
 pnpm install
-```
-
-3. Start the development server:
-
-```bash
 pnpm dev
 ```
 
-After the server starts, you should see output similar to:
-
-```
-  VITE v5.0.0  ready in 320 ms
-
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: use --host to expose
-```
-
-Open your browser and visit `http://localhost:5173` to view the application.
+成功部署后，在浏览器中访问 `http://localhost:5173/data-viewer` 即可查看应用。
 
 ### SDK
 
-The Data Viewer SDK provides a React component for visualizing structured data in your applications.
+1. 使用SDK前需要保证shadcn框架已安装，具体安装方法请参考：https://ui.shadcn.com/docs/installation
 
-#### Installation
+2. 添加本项目依赖
 
 ```bash
-pnpm add conanyu-data-viewer
+pnpm dlx shadcn@latest add https://raw.githubusercontent.com/ConanYu/data-viewer/refs/heads/main/app/page/public/r/data-viewer.json
 ```
 
-#### Usage
+3. 引入组件
 
 ```jsx
-import DataViewer from "conanyu-data-viewer";
-import "conanyu-data-viewer/dist/conanyu-data-viewer.css";
+import { DataViewer } from "@/components/ui/conanyu/data-viewer";
 
 const data = {
   users: [
@@ -82,6 +62,6 @@ const App = () => {
 };
 ```
 
-## License
+## 开源协议
 
-This project is licensed under the MIT License.
+本项目基于 MIT 协议开源，您可以在遵守协议的前提下自由使用、修改和分发本项目的代码。
