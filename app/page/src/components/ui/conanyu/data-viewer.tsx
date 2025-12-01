@@ -167,14 +167,14 @@ const JSON = JSONBigInt({ useNativeBigInt: true });
 const dataType = ['json', 'json5', 'yaml'] as const;
 type DataType = (typeof dataType)[number];
 
-type TransFunc = (text: string) => unknown;
-const transMap: Record<DataType, TransFunc> = {
+type AutoDetectFunc = (text: string) => unknown;
+const autoDetectMap: Record<DataType, AutoDetectFunc> = {
   json: JSON.parse,
   json5: JSON5.parse,
   yaml: (text: string) => YAML.parse(text, { intAsBigInt: true }),
 };
 
-function trans(props: { data: string; type?: DataType }):
+function autoDetect(props: { data: string; type?: DataType }):
   | {
       type: 'error';
       data: undefined;
@@ -191,7 +191,7 @@ function trans(props: { data: string; type?: DataType }):
     for (const type of dataType) {
       let result = undefined;
       try {
-        result = transMap[type](data);
+        result = autoDetectMap[type](data);
       } catch (e) {
         if (type === 'json5') {
           error = e;
@@ -208,7 +208,7 @@ function trans(props: { data: string; type?: DataType }):
     return { type: 'error', error: `${error}`, data: undefined };
   }
   try {
-    return { type, data: transMap[type](data), error: undefined };
+    return { type, data: autoDetectMap[type](data), error: undefined };
   } catch (e) {
     return { type: 'error', error: `${e}`, data: undefined };
   }
@@ -225,7 +225,12 @@ type InteractionResult =
     }
   | undefined;
 
-type Interaction = (r: { data: unknown; depth: number; config?: DataViewerConfig }) => InteractionResult;
+type Interaction = (r: {
+  data: unknown;
+  depth: number;
+  config?: DataViewerConfig;
+  onDataChange?: (data: unknown) => void;
+}) => InteractionResult;
 
 const TooltipButton = ({
   tooltip,
@@ -296,17 +301,20 @@ function LongTextDialogContent({ data, config }: { data: string; config?: DataVi
   );
 }
 
-const defaultInteraction: Interaction = ({ data, depth, config }) => {
+const defaultInteraction: Interaction = ({ data, depth, config, onDataChange }) => {
   const length = collapseLength(data);
-  const viewer = (data: unknown, title?: string) => (
-    <DataViewer
-      data={JSON.stringify(data)}
-      title={title}
-      config={{ ...config, type: 'json', withToaster: false }}
-      className="border-2 rounded-md"
-      preClassName="max-h-[80vh]"
-    />
-  );
+  const viewer = (data: unknown, title?: string, callback?: (v: unknown) => void) => {
+    return (
+      <DataViewer
+        data={JSON.stringify(data)}
+        title={title}
+        config={{ ...config, type: 'json', withToaster: false }}
+        className="border-2 rounded-md"
+        preClassName="max-h-[80vh]"
+        onDataChange={callback ?? onDataChange}
+      />
+    );
+  };
   if (depth > 0 && length > 0) {
     return {
       event: viewer(data, 'JSON'),
@@ -322,7 +330,7 @@ const defaultInteraction: Interaction = ({ data, depth, config }) => {
         title: '链接',
       };
     }
-    const tryParseResult = trans({ data });
+    const tryParseResult = autoDetect({ data });
     if (typeof tryParseResult.error !== 'string') {
       const { type, data } = tryParseResult;
       if (
@@ -330,8 +338,20 @@ const defaultInteraction: Interaction = ({ data, depth, config }) => {
         (type === 'yaml' && !['string', 'number', 'bigint'].includes(typeof data))
       ) {
         const title = type === 'json' ? 'JSON' : type === 'json5' ? 'JSON5' : 'YAML';
+        let callback;
+        switch (type) {
+          case 'json':
+            callback = (v: unknown) => onDataChange?.(JSON.stringify(v));
+            break;
+          case 'json5':
+            callback = (v: unknown) => onDataChange?.(JSON5.stringify(v));
+            break;
+          case 'yaml':
+            callback = (v: unknown) => onDataChange?.(YAML.stringify(v));
+            break;
+        }
         return {
-          event: viewer(data, title),
+          event: viewer(data, title, callback),
           title,
         };
       }
@@ -429,7 +449,7 @@ function AddValueDialogContent({
 }) {
   const [key, setKey] = useState('');
   const [value, setValue] = useState('"输入数据"');
-  const data = useMemo(() => trans({ data: value, type: config?.type }), [value, config?.type]);
+  const data = useMemo(() => autoDetect({ data: value, type: config?.type }), [value, config?.type]);
 
   return (
     <DialogContent
@@ -476,7 +496,7 @@ function AddValueDialogContent({
             config={{ ...config, withToaster: false }}
           />
           <Button
-            className="absolute bottom-3 right-3 cursor-pointer"
+            className="absolute bottom-3 right-5 cursor-pointer"
             size="sm"
             disabled={(!isArray && !key) || !!data.error}
             onClick={() => onSubmitValue(key, data.data)}
@@ -501,12 +521,12 @@ function InnerViewer(props: InnerViewerProps) {
   }, [node.length, config?.forceDefaultCollapseLengthGte]);
 
   const interaction = useMemo(() => {
-    const props = { data: node.data, depth: node.depth, config };
+    const props = { data: node.data, depth: node.depth, config, onDataChange: onValueChange };
     const interaction = config?.additionalInteraction?.(props);
     if (interaction?.highPriority) {
       return interaction;
     }
-    return defaultInteraction(props);
+    return defaultInteraction(props) || interaction;
   }, [node, config?.additionalInteraction]);
 
   let interactionTrigger: ReactNode = null;
@@ -866,7 +886,7 @@ function DataViewer(props: DataViewerProps) {
   const [mode, setMode] = useState<'normal' | 'edit'>('normal');
 
   // 处理转化逻辑
-  const data = useMemo(() => trans({ data: source, type: type }), [source, type]);
+  const data = useMemo(() => autoDetect({ data: source, type: type }), [source, type]);
 
   // 处理样式
   const [highlighter, setHighlighter] = useState<[HighlighterGeneric<string, string>, ThemeRegistration] | undefined>(
@@ -1081,5 +1101,5 @@ export {
   DataViewer,
   type InteractionResult,
   type Interaction,
-  trans,
+  autoDetect,
 };

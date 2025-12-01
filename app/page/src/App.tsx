@@ -54,7 +54,10 @@ export default function App() {
               }}
             />
           ) : (
-            <div style={{ backgroundColor: themeInfo?.colors?.['editor.background'] || '#fff' }} />
+            <div
+              className="h-full rounded-md"
+              style={{ backgroundColor: themeInfo?.colors?.['editor.background'] || '#fff' }}
+            />
           )}
         </div>
       </div>
