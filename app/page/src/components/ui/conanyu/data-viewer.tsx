@@ -1059,6 +1059,15 @@ function DataViewer(props: DataViewerProps) {
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={async () => {
+                        await navigator.clipboard.writeText(JSON.stringify(data.data));
+                        toast.success('复制成功');
+                      }}
+                    >
+                      复制为压缩JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={async () => {
                         await navigator.clipboard.writeText(JSON5.stringify(data.data, null, 2));
                         toast.success('复制成功');
                       }}
