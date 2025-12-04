@@ -174,6 +174,13 @@ const autoDetectMap: Record<DataType, AutoDetectFunc> = {
   yaml: (text: string) => YAML.parse(text, { intAsBigInt: true }),
 };
 
+type StringifyFunc = (data: unknown) => string;
+const stringifyPrettyMap: Record<DataType, StringifyFunc> = {
+  json: (data: unknown) => JSON.stringify(data, null, 2),
+  json5: (data: unknown) => JSON.stringify(data, null, 2), // 即使原本是JSON，也依旧使用JSON序列化
+  yaml: (data: unknown) => YAML.stringify(data, { intAsBigInt: true, indent: 2 }),
+};
+
 function autoDetect(props: { data: string; type?: DataType }):
   | {
       type: 'error';
@@ -308,7 +315,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange }) 
       <DataViewer
         data={JSON.stringify(data)}
         title={title}
-        config={{ ...config, type: 'json', withToaster: false }}
+        config={{ ...config, withToaster: false }}
         className="border-2 rounded-md"
         preClassName="max-h-[80vh]"
         onDataChange={callback ?? onDataChange}
@@ -492,7 +499,14 @@ function AddValueDialogContent({
             className="rounded-md h-full"
             preClassName="h-full"
             data={value}
-            onDataChange={data => setValue(JSON.stringify(data, null, 2))}
+            onDataChange={value => {
+              for (const type of dataType) {
+                if (type === data.type) {
+                  setValue(stringifyPrettyMap[type](value));
+                  break;
+                }
+              }
+            }}
             config={{ ...config, withToaster: false }}
           />
           <Button
@@ -978,9 +992,9 @@ function DataViewer(props: DataViewerProps) {
                       data={source}
                       className="border-2 rounded-md h-full max-h-[80vh]"
                       preClassName="h-full"
-                      onDataChange={data => {
-                        setSource(JSON.stringify(data, null, 2));
-                        props.onDataChange?.(data);
+                      onDataChange={value => {
+                        setSource(stringifyPrettyMap[data.type](value));
+                        props.onDataChange?.(value);
                       }}
                       config={{ ...props.config, withToaster: false, withoutMaximize: true }}
                     />
