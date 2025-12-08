@@ -37,7 +37,7 @@ pnpm dev
 2. 添加本项目依赖
 
 ```bash
-pnpm dlx shadcn@latest add https://raw.githubusercontent.com/ConanYu/data-viewer/refs/heads/main/docs/r/data-viewer.json
+pnpm dlx shadcn@latest add https://raw.githubusercontent.com/ConanYu/data-viewer/refs/heads/main/app/shadcn/data-viewer.json
 ```
 
 3. 引入组件

@@ -9,15 +9,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils.ts';
 import { buttonVariants } from '@/components/ui/button.tsx';
 import {
+  CircleChevronDown,
+  CircleChevronUp,
   CircleMinus,
   CirclePlus,
   CopyIcon,
   Ellipsis,
-  Eye,
   EyeOff,
   LoaderCircle,
   Maximize,
   Palette,
+  Sparkle,
   SquarePen,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,9 +29,11 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx';
 import { Textarea } from '@/components/ui/textarea.tsx';
@@ -281,11 +285,11 @@ function LongTextDialogContent({ data, config }: { data: string; config?: DataVi
       <pre
         className={cn(
           showToolbar ? 'overflow-y-scroll' : 'overflow-auto',
-          'scrollbar-thin max-h-[80vh] p-4 text-sm font-mono whitespace-pre-wrap',
+          'scrollbar-thin max-h-[80vh] p-4 text-sm font-mono whitespace-pre-wrap break-all',
         )}
         style={{
-          backgroundColor: config?.defaultTheme?.bg || config?.defaultTheme?.colors?.['editor.background'],
-          color: config?.defaultTheme?.fg || config?.defaultTheme?.colors?.['editor.foreground'],
+          backgroundColor: config?.themeInfo?.bg || config?.themeInfo?.colors?.['editor.background'],
+          color: config?.themeInfo?.fg || config?.themeInfo?.colors?.['editor.foreground'],
         }}
       >
         {data}
@@ -380,6 +384,7 @@ interface InnerViewerProps {
   mode: 'normal' | 'edit';
   onValueChange: (v: unknown) => void;
   config?: DataViewerConfig;
+  onMove?: (e: 'up' | 'down') => void;
 }
 
 function collapseLength(v: unknown): number {
@@ -400,7 +405,7 @@ function InteractionCircle({
   const [hover, setHover] = useState(false);
   return (
     <span
-      className={cn('font-sans mr-0.5 select-none cursor-pointer opacity-70 hover:opacity-100', className)}
+      className={cn('font-sans select-none cursor-pointer opacity-70 hover:opacity-100', className)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={e => onClick(e.nativeEvent)}
@@ -524,8 +529,8 @@ function AddValueDialogContent({
 }
 
 function InnerViewer(props: InnerViewerProps) {
-  const { node, config, themeInfo, mode, onValueChange } = props;
-  const { forceDefaultCollapseLengthGte } = config || {};
+  const { node, config, themeInfo, mode, onValueChange, onMove } = props;
+  const { forceDefaultCollapseLengthGte, openMove } = config || {};
   const [collapsed, setCollapsed] = useState(node.length > (forceDefaultCollapseLengthGte || 100));
   const [keyHover, setKeyHover] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -590,33 +595,45 @@ function InnerViewer(props: InnerViewerProps) {
   } else if (mode === 'edit') {
     if (node.depth !== 0) {
       interactionTrigger = (
-        <Tooltip key="interaction-minus">
-          <TooltipTrigger>
-            <CircleMinus
-              className="inline-block align-text-top w-3 h-3 mt-0.5 cursor-pointer mr-0.5"
-              onClick={() => onValueChange(undefined)}
+        <span key="interaction">
+          <CircleMinus
+            key="interaction-minus"
+            className="inline-block align-text-top w-3 h-3 mt-0.5 cursor-pointer mr-0.5"
+            onClick={() => onValueChange(undefined)}
+            style={{ color: themeInfo.colors?.['button.background'] }}
+          />
+          {openMove && node.collapsedIndex !== 0 && (
+            <CircleChevronUp
+              key="interaction-move-up"
+              className="inline-block align-text-top w-3 h-3 mt-0.5 cursor-pointer mx-0.5"
+              onClick={() => onMove?.('up')}
               style={{ color: themeInfo.colors?.['button.background'] }}
             />
-          </TooltipTrigger>
-          <TooltipContent>删除</TooltipContent>
-        </Tooltip>
+          )}
+          {openMove && node.collapsedIndex !== undefined && node.collapsedIndex + 1 !== node.collapsedLength && (
+            <CircleChevronDown
+              key="interaction-move-down"
+              className="inline-block align-text-top w-3 h-3 mt-0.5 cursor-pointer mx-0.5"
+              onClick={() => onMove?.('down')}
+              style={{ color: themeInfo.colors?.['button.background'] }}
+            />
+          )}
+        </span>
       );
     }
     if (node.data !== null && typeof node.data === 'object') {
       const isArray = Array.isArray(node.data);
+      if (interactionTrigger !== null) {
+        interactionTrigger = <span className="ml-0.5">{interactionTrigger}</span>;
+      }
       interactionTrigger = (
         <span key="interaction-plus">
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen} key="interaction-plus">
             <DialogTrigger>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <CirclePlus
-                    className="inline-block align-text-top w-3 h-3 mt-0.5 cursor-pointer mr-1"
-                    style={{ color: themeInfo.colors?.['button.background'] }}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>添加</TooltipContent>
-              </Tooltip>
+              <CirclePlus
+                className="inline-block align-text-top w-3 h-3 mt-0.5 cursor-pointer mr-0.5"
+                style={{ color: themeInfo.colors?.['button.background'] }}
+              />
             </DialogTrigger>
             <AddValueDialogContent
               isArray={isArray}
@@ -652,7 +669,11 @@ function InnerViewer(props: InnerViewerProps) {
       <div className="pl-8">
         {node.before.map((item, index) => {
           if (item.type === ViewerContentTypeInteraction) {
-            return interactionTrigger;
+            return (
+              <span key="interaction-other" className="mr-0.5">
+                {interactionTrigger}
+              </span>
+            );
           }
           const canCollapse = item.type === ViewerContentTypeKey && node.length > 0;
           return (
@@ -717,6 +738,25 @@ function InnerViewer(props: InnerViewerProps) {
                     onValueChange(data);
                   }
                 }}
+                onMove={e => {
+                  let data = node.data;
+                  if (data !== null) {
+                    const swap = (arr: unknown[], i: number, j: number) => {
+                      const temp = arr[i];
+                      arr[i] = arr[j];
+                      arr[j] = temp;
+                    };
+                    const otherIndex = e === 'up' ? index - 1 : index + 1;
+                    if (Array.isArray(data)) {
+                      swap(data, index, otherIndex);
+                    } else if (typeof data === 'object') {
+                      const newDataTemp = Object.entries(data);
+                      swap(newDataTemp, index, otherIndex);
+                      data = Object.fromEntries(newDataTemp);
+                    }
+                  }
+                  onValueChange(data);
+                }}
               />
             ))}
           </div>
@@ -750,6 +790,8 @@ interface ViewerNode {
   data: unknown;
   length: number;
   depth: number;
+  collapsedIndex?: number;
+  collapsedLength?: number;
   before: ViewerContent[];
   children: ViewerNode[];
   after: ViewerContent[];
@@ -761,37 +803,40 @@ function calcDfs(props: {
   from: number;
   depth: number;
   key?: string;
-  comma?: boolean;
+  collapsedIndex?: number;
+  collapsedLength?: number;
 }): [ViewerNode, number] {
-  const { data, color, from, depth, key, comma } = props;
+  const { data, color, from, depth, key, collapsedIndex, collapsedLength } = props;
   const length = collapseLength(data);
   const node: ViewerNode = {
-    length: length,
+    length,
     before: [],
     children: [],
     depth,
+    collapsedIndex,
+    collapsedLength,
     after: [],
-    data: data,
+    data,
   };
-  let index = from;
+  let dfsIndex = from;
   const toViewerContent = (s: string, type?: ViewerContentType) => {
     const current: ViewerContent[] = [];
     for (const c of s) {
       const lastColor = current?.[current.length - 1]?.color;
-      const currentColor = color?.[index];
+      const currentColor = color?.[dfsIndex];
       if (lastColor === currentColor) {
         current[current.length - 1].content += c;
       } else {
         current.push({ content: c, color: currentColor, type: type || ViewerContentTypeNormal });
       }
-      index++;
+      dfsIndex++;
     }
     return current;
   };
   if (key !== undefined) {
     const current = toViewerContent(JSON.stringify(key), ViewerContentTypeKey);
-    node.before.push(...current, { content: ': ', color: color?.[index], type: ViewerContentTypeNormal });
-    index++;
+    node.before.push(...current, { content: ': ', color: color?.[dfsIndex], type: ViewerContentTypeNormal });
+    dfsIndex++;
   }
   node.before.push({ content: '', type: ViewerContentTypeInteraction });
   if (typeof data === 'string') {
@@ -803,15 +848,16 @@ function calcDfs(props: {
     if (length > 0) {
       node.before.push(...toViewerContent('['));
       for (let i = 0; i < length; i++) {
-        const [child, newIndex] = calcDfs({
+        const [child, newDfsIndex] = calcDfs({
           data: data[i],
           color,
-          from: index,
+          from: dfsIndex,
           depth: depth + 1,
-          comma: i < length - 1,
+          collapsedIndex: i,
+          collapsedLength: length,
         });
         node.children.push(child);
-        index = newIndex;
+        dfsIndex = newDfsIndex;
       }
       node.after.push(...toViewerContent(']'));
     } else {
@@ -820,17 +866,18 @@ function calcDfs(props: {
   } else if (typeof data === 'object') {
     if (length > 0) {
       node.before.push(...toViewerContent('{'));
-      Object.entries(data).forEach(([key, son], objectIndex) => {
-        const [child, newIndex] = calcDfs({
+      Object.entries(data).forEach(([key, son], i) => {
+        const [child, newDfsIndex] = calcDfs({
           data: son,
           color,
-          from: index,
+          from: dfsIndex,
           depth: depth + 1,
           key,
-          comma: objectIndex < length - 1,
+          collapsedIndex: i,
+          collapsedLength: length,
         });
         node.children.push(child);
-        index = newIndex;
+        dfsIndex = newDfsIndex;
       });
       node.after.push(...toViewerContent('}'));
     } else {
@@ -838,11 +885,11 @@ function calcDfs(props: {
     }
   }
 
-  if (comma) {
-    node.after.push({ content: ',', color: color?.[index], type: ViewerContentTypeNormal });
-    index++;
+  if (collapsedIndex !== undefined && collapsedIndex + 1 !== collapsedLength) {
+    node.after.push({ content: ',', color: color?.[dfsIndex], type: ViewerContentTypeNormal });
+    dfsIndex++;
   }
-  return [node, index];
+  return [node, dfsIndex];
 }
 
 function calc(data: unknown, t: TokensResult): ViewerNode {
@@ -860,7 +907,7 @@ function calc(data: unknown, t: TokensResult): ViewerNode {
 // 入口组件
 interface DataViewerConfig {
   type?: DataType; // 强制制定数据类型 不填则根据数据自动判断
-  defaultTheme?: ThemeRegistration; // 默认自定义主题 默认为vitesse-light
+  themeInfo?: ThemeRegistration; // 默认自定义主题 默认为vitesse-light
   withoutButtonGroup?: boolean; // 是否不展示操作按钮组
   withToaster?: boolean; // 是否需要toaster
   withoutMaximize?: boolean; // 是否不展示最大化按钮
@@ -869,6 +916,7 @@ interface DataViewerConfig {
   showInteractionWithStringLengthGte?: number; // 展示交互的字符串长度阈值 不填则为100
   additionalInteraction?: Interaction; // 自定义交互逻辑
   uneditable?: boolean; // 是否可编辑
+  openMove?: boolean; // 默认是否开启移动操作
 }
 
 interface DataViewerProps {
@@ -877,27 +925,63 @@ interface DataViewerProps {
   preClassName?: string;
   title?: string;
   onDataChange?: (data: unknown) => void; // 数据编辑回调
-  onBundledThemeChange?: (theme: ThemeRegistration) => void; // 默认主题切换回调
+  onThemeInfoChange?: (theme: ThemeRegistration) => void; // 默认主题切换回调
   onCloseButtonGroup?: (e: MouseEvent) => void; // 关闭工具栏回调
+  onOpenMoveChange?: (openMove: boolean) => void; // 移动操作展开状态改变回调
   config?: DataViewerConfig;
 }
+
+const localStorageThemeKey = 'conanyu-data-viewer.theme' as const;
+const localStorageOpenMoveKey = 'conanyu-data-viewer.open-move' as const;
 
 const globalHighlighter: Map<ThemeRegistration, HighlighterGeneric<string, string>> = new Map();
 
 function DataViewer(props: DataViewerProps) {
-  // 处理主题
-  const { type, defaultTheme, withoutButtonGroup, withoutMaximize, withToaster, withThemeChange, uneditable } =
-    props.config || {};
-  const [themeInfo, setThemeInfo] = useState<ThemeRegistration>(VitesseLight as ThemeRegistration);
+  // 处理配置
+  const {
+    type,
+    themeInfo: propThemeInfo,
+    withoutButtonGroup,
+    withoutMaximize,
+    withToaster,
+    withThemeChange,
+    uneditable,
+    openMove: propOpenMove,
+  } = props.config || {};
+  const getThemeInfo = () => {
+    return (
+      propThemeInfo ??
+      (() => {
+        const theme = localStorage.getItem(localStorageThemeKey);
+        return theme === null ? null : (JSON5.parse(theme) as ThemeRegistration);
+      })() ??
+      (OneLight as ThemeRegistration)
+    );
+  };
+  const [themeInfo, setThemeInfo] = useState<ThemeRegistration>(getThemeInfo());
   useEffect(() => {
-    setThemeInfo(defaultTheme ? defaultTheme : (VitesseLight as ThemeRegistration));
-  }, [defaultTheme]);
+    setThemeInfo(getThemeInfo());
+  }, [propThemeInfo]);
   const [withButtonGroup, setWithButtonGroup] = useState(!withoutButtonGroup);
   const [source, setSource] = useState(props.data);
   useEffect(() => {
     setSource(props.data);
   }, [props.data]);
   const [mode, setMode] = useState<'normal' | 'edit'>('normal');
+  const getOpenMove = () => {
+    return (
+      propOpenMove ??
+      (() => {
+        const openMove = localStorage.getItem(localStorageOpenMoveKey);
+        return openMove === null ? null : openMove === 'true';
+      })() ??
+      true
+    );
+  };
+  const [openMove, setOpenMove] = useState(getOpenMove());
+  useEffect(() => {
+    setOpenMove(getOpenMove());
+  }, [propOpenMove]);
 
   // 处理转化逻辑
   const data = useMemo(() => autoDetect({ data: source, type: type }), [source, type]);
@@ -908,28 +992,33 @@ function DataViewer(props: DataViewerProps) {
   );
 
   useEffect(() => {
+    const theme = themeInfo;
     (async () => {
-      const cachedHighlighter = globalHighlighter.get(themeInfo);
+      const cachedHighlighter = globalHighlighter.get(theme);
       if (cachedHighlighter) {
-        setHighlighter([cachedHighlighter, themeInfo]);
+        setHighlighter([cachedHighlighter, theme]);
       } else {
         const highlighter = (await createHighlighter({
           langs: ['json'],
-          themes: [themeInfo],
+          themes: [theme],
         })) as HighlighterGeneric<string, string>;
-        setHighlighter([highlighter, themeInfo]);
-        globalHighlighter.set(themeInfo, highlighter);
+        setHighlighter([highlighter, theme]);
+        globalHighlighter.set(theme, highlighter);
       }
     })();
   }, [themeInfo]);
 
   const [bgColor, fgColor, root] = useMemo(() => {
     if (!highlighter || data.data === undefined) {
-      return [undefined, undefined, undefined];
+      return [
+        themeInfo?.bg || themeInfo?.colors?.['editor.background'],
+        themeInfo?.fg || themeInfo?.colors?.['editor.foreground'],
+        undefined,
+      ];
     }
     const t = highlighter[0].codeToTokens(JSON.stringify(data.data), { lang: 'json', theme: highlighter[1] });
     return [t.bg, t.fg, calc(data.data, t)];
-  }, [data, highlighter]);
+  }, [data, highlighter, themeInfo]);
 
   return (
     <>
@@ -938,13 +1027,18 @@ function DataViewer(props: DataViewerProps) {
         <pre
           className={cn(
             withButtonGroup ? 'overflow-y-scroll' : 'overflow-auto',
-            'scrollbar-thin py-4 text-sm font-mono',
+            'scrollbar-thin py-4 text-sm font-mono font-normal antialiased',
             props.preClassName,
           )}
           style={{ backgroundColor: bgColor, color: fgColor }}
         >
           {data.error ? (
-            <div className="px-4" style={{ color: themeInfo.colors?.['editorError.foreground'] }}>
+            <div
+              className="px-4"
+              style={{
+                color: themeInfo.colors?.['editorError.foreground'],
+              }}
+            >
               {data.error}
             </div>
           ) : root !== undefined ? (
@@ -952,7 +1046,7 @@ function DataViewer(props: DataViewerProps) {
               mode={mode}
               themeInfo={themeInfo}
               node={root}
-              config={props.config}
+              config={{ ...props.config, openMove }}
               onValueChange={value => {
                 setSource(JSON.stringify(value));
                 props.onDataChange?.(value);
@@ -1004,7 +1098,7 @@ function DataViewer(props: DataViewerProps) {
               {!uneditable && (
                 <TooltipButton
                   tooltip="切换模式"
-                  icon={mode === 'normal' ? <Eye /> : <SquarePen />}
+                  icon={mode === 'normal' ? <Sparkle /> : <SquarePen />}
                   onClick={() => setMode(mode === 'normal' ? 'edit' : 'normal')}
                 />
               )}
@@ -1039,7 +1133,8 @@ function DataViewer(props: DataViewerProps) {
                           className="cursor-pointer"
                           onClick={() => {
                             setThemeInfo(value as ThemeRegistration);
-                            props.onBundledThemeChange?.(value as ThemeRegistration);
+                            props.onThemeInfoChange?.(value as ThemeRegistration);
+                            localStorage.setItem(localStorageThemeKey, JSON5.stringify(value));
                           }}
                         >
                           {key}
@@ -1060,6 +1155,7 @@ function DataViewer(props: DataViewerProps) {
                   <Ellipsis />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
+                  <DropdownMenuLabel>操作</DropdownMenuLabel>
                   <DropdownMenuGroup>
                     <DropdownMenuItem
                       className="cursor-pointer"
@@ -1106,6 +1202,20 @@ function DataViewer(props: DataViewerProps) {
                     >
                       隐藏工具栏
                     </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuLabel>设置</DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuCheckboxItem
+                      checked={openMove}
+                      className="cursor-pointer"
+                      onCheckedChange={checked => {
+                        setOpenMove(checked);
+                        props.onOpenMoveChange?.(checked);
+                        localStorage.setItem(localStorageOpenMoveKey, checked ? 'true' : 'false');
+                      }}
+                    >
+                      开启移动
+                    </DropdownMenuCheckboxItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
