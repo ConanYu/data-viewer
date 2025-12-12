@@ -1,18 +1,29 @@
 import { DataViewer } from '@/components/ui/conanyu/data-viewer.tsx';
 import { Textarea } from '@/components/ui/textarea.tsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ThemeRegistration } from 'shiki';
 import JSONBigInt from 'json-bigint';
 import OneLight from 'tm-themes/themes/one-light.json';
+import { toast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner.tsx';
 const JSON = JSONBigInt({ useNativeBigInt: true });
 
 const localStorageContentKey = 'conanyu-data-viewer.content' as const;
 
 export default function App() {
   const [content, setContentState] = useState('');
+  const alerted = useRef(false);
   const setContent = (value: string) => {
     setContentState(value);
-    localStorage.setItem(localStorageContentKey, value);
+    const MAX_SIZE = 100 * 1024;
+    if (value.length <= MAX_SIZE) {
+      localStorage.setItem(localStorageContentKey, value);
+    } else {
+      if (!alerted.current) {
+        toast.warning(`数据内容大小（${value.length}字节）超过最大限制（${MAX_SIZE}字节），将不会保存到浏览器缓存中。`);
+        alerted.current = true;
+      }
+    }
   };
   const [themeInfo, setThemeInfo] = useState<ThemeRegistration | undefined>(undefined);
   useEffect(() => {
@@ -23,6 +34,7 @@ export default function App() {
 
   return (
     <div className="m-4">
+      <Toaster />
       <div className="grid w-full grid-cols-[max(calc((100%-1rem)/3),300px)_calc(2*max(calc((100%-1rem)/3),300px))] gap-4">
         <div className="h-[calc(100vh-2rem)]">
           <Textarea

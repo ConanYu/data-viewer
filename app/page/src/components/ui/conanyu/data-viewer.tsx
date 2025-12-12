@@ -181,7 +181,7 @@ const autoDetectMap: Record<DataType, AutoDetectFunc> = {
 type StringifyFunc = (data: unknown) => string;
 const stringifyPrettyMap: Record<DataType, StringifyFunc> = {
   json: (data: unknown) => JSON.stringify(data, null, 2),
-  json5: (data: unknown) => JSON.stringify(data, null, 2), // 即使原本是JSON，也依旧使用JSON序列化
+  json5: (data: unknown) => JSON.stringify(data, null, 2), // 即使原本是JSON5，也依旧使用JSON序列化
   yaml: (data: unknown) => YAML.stringify(data, { intAsBigInt: true, indent: 2 }),
 };
 
