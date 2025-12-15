@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils.ts';
 import { buttonVariants } from '@/components/ui/button.tsx';
 import {
+  CircleArrowUp,
   CircleChevronDown,
   CircleChevronUp,
   CircleMinus,
@@ -101,6 +102,8 @@ import Vesper from 'tm-themes/themes/vesper.json';
 import VitesseBlack from 'tm-themes/themes/vitesse-black.json';
 import VitesseDark from 'tm-themes/themes/vitesse-dark.json';
 import VitesseLight from 'tm-themes/themes/vitesse-light.json';
+import * as React from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 
 const themes = {
   Andromeeda: Andromeeda,
@@ -450,25 +453,32 @@ function InteractionTriangle({
   );
 }
 
-function AddValueDialogContent({
+function UpdateValueDialogContent({
   isArray,
   onSubmitValue,
   config,
-}: {
+  defaultKey,
+  defaultValue,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
   isArray: boolean;
   onSubmitValue: (k: string, v: unknown) => void;
   config?: DataViewerConfig;
+  defaultKey?: string;
+  defaultValue?: string;
 }) {
-  const [key, setKey] = useState('');
-  const [value, setValue] = useState('"输入数据"');
+  const [key, setKey] = useState(defaultKey || '');
+  const [value, setValue] = useState(defaultValue || '"输入数据"');
   const data = useMemo(() => autoDetect({ data: value, type: config?.type }), [value, config?.type]);
-
+  useEffect(() => setKey(defaultKey || ''), [defaultKey]);
+  useEffect(() => setValue(defaultValue || '"输入数据"'), [defaultValue]);
   return (
     <DialogContent
       className="w-full !max-w-[60vw]"
       onOpenAutoFocus={e => e.preventDefault()}
       showCloseButton={false}
       aria-describedby={undefined}
+      {...props}
     >
       <VisuallyHidden asChild>
         <DialogTitle />
@@ -485,6 +495,7 @@ function AddValueDialogContent({
           ) : (
             <>
               <Input
+                disabled={!!defaultKey}
                 className="w-[calc(30vw-1.75rem)] mb-4 bg-gray-100"
                 placeholder="输入KEY"
                 value={key}
@@ -533,7 +544,8 @@ function InnerViewer(props: InnerViewerProps) {
   const { forceDefaultCollapseLengthGte, openMove } = config || {};
   const [collapsed, setCollapsed] = useState(node.length > (forceDefaultCollapseLengthGte || 100));
   const [keyHover, setKeyHover] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
 
   useEffect(() => {
     setCollapsed(node.length > (forceDefaultCollapseLengthGte || 100));
@@ -549,6 +561,27 @@ function InnerViewer(props: InnerViewerProps) {
   }, [node, config?.additionalInteraction]);
 
   let interactionTrigger: ReactNode = null;
+
+  const updateInteraction = (
+    <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen} key="interaction-arrow-up">
+      <DialogTrigger>
+        <CircleArrowUp
+          className="inline-block align-text-top w-3 h-3 mt-0.5 cursor-pointer mx-0.5"
+          style={{ color: themeInfo.colors?.['button.background'] }}
+        />
+      </DialogTrigger>
+      <UpdateValueDialogContent
+        isArray={!node.key}
+        config={config}
+        onSubmitValue={(_, v) => {
+          onValueChange(v);
+          setUpdateDialogOpen(false);
+        }}
+        defaultKey={node.key}
+        defaultValue={JSON.stringify(node.data, null, 2)}
+      />
+    </Dialog>
+  );
 
   if (mode === 'normal') {
     if (interaction) {
@@ -602,6 +635,7 @@ function InnerViewer(props: InnerViewerProps) {
             onClick={() => onValueChange(undefined)}
             style={{ color: themeInfo.colors?.['button.background'] }}
           />
+          {updateInteraction}
           {openMove && node.collapsedIndex !== 0 && (
             <CircleChevronUp
               key="interaction-move-up"
@@ -628,14 +662,14 @@ function InnerViewer(props: InnerViewerProps) {
       }
       interactionTrigger = (
         <span key="interaction-plus">
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen} key="interaction-plus">
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen} key="interaction-plus">
             <DialogTrigger>
               <CirclePlus
                 className="inline-block align-text-top w-3 h-3 mt-0.5 cursor-pointer mr-0.5"
                 style={{ color: themeInfo.colors?.['button.background'] }}
               />
             </DialogTrigger>
-            <AddValueDialogContent
+            <UpdateValueDialogContent
               isArray={isArray}
               config={config}
               onSubmitValue={(k, v) => {
@@ -645,10 +679,11 @@ function InnerViewer(props: InnerViewerProps) {
                   (node.data as Record<string, unknown>)[k] = v;
                 }
                 onValueChange(node.data);
-                setDialogOpen(false);
+                setAddDialogOpen(false);
               }}
             />
           </Dialog>
+          {node.depth === 0 && updateInteraction}
           {interactionTrigger}
         </span>
       );
@@ -787,6 +822,7 @@ interface ViewerContent {
 }
 
 interface ViewerNode {
+  key?: string;
   data: unknown;
   length: number;
   depth: number;
@@ -809,14 +845,15 @@ function calcDfs(props: {
   const { data, color, from, depth, key, collapsedIndex, collapsedLength } = props;
   const length = collapseLength(data);
   const node: ViewerNode = {
+    key,
+    data,
     length,
-    before: [],
-    children: [],
     depth,
     collapsedIndex,
     collapsedLength,
+    before: [],
+    children: [],
     after: [],
-    data,
   };
   let dfsIndex = from;
   const toViewerContent = (s: string, type?: ViewerContentType) => {
