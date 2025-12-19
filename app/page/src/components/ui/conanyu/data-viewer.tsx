@@ -244,6 +244,7 @@ type Interaction = (r: {
   depth: number;
   config?: DataViewerConfig;
   onDataChange?: (data: unknown) => void;
+  jsonPath: string;
 }) => InteractionResult;
 
 const TooltipButton = ({
@@ -315,7 +316,7 @@ function LongTextDialogContent({ data, config }: { data: string; config?: DataVi
   );
 }
 
-const defaultInteraction: Interaction = ({ data, depth, config, onDataChange }) => {
+const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, jsonPath }) => {
   const length = collapseLength(data);
   const viewer = (data: unknown, title?: string, callback?: (v: unknown) => void) => {
     return (
@@ -326,6 +327,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange }) 
         className="border-2 rounded-md"
         preClassName="max-h-[80vh]"
         onDataChange={callback ?? onDataChange}
+        jsonPath={jsonPath}
       />
     );
   };
@@ -388,6 +390,7 @@ interface InnerViewerProps {
   onValueChange: (v: unknown) => void;
   config?: DataViewerConfig;
   onMove?: (e: 'up' | 'down') => void;
+  jsonPath: string;
 }
 
 function collapseLength(v: unknown): number {
@@ -540,7 +543,7 @@ function UpdateValueDialogContent({
 }
 
 function InnerViewer(props: InnerViewerProps) {
-  const { node, config, themeInfo, mode, onValueChange, onMove } = props;
+  const { node, config, themeInfo, mode, onValueChange, onMove, jsonPath } = props;
   const { forceDefaultCollapseLengthGte, openMove } = config || {};
   const [collapsed, setCollapsed] = useState(node.length > (forceDefaultCollapseLengthGte || 100));
   const [keyHover, setKeyHover] = useState(false);
@@ -552,7 +555,7 @@ function InnerViewer(props: InnerViewerProps) {
   }, [node.length, config?.forceDefaultCollapseLengthGte]);
 
   const interaction = useMemo(() => {
-    const props = { data: node.data, depth: node.depth, config, onDataChange: onValueChange };
+    const props = { data: node.data, depth: node.depth, config, onDataChange: onValueChange, jsonPath };
     const interaction = config?.additionalInteraction?.(props);
     if (interaction?.highPriority) {
       return interaction;
@@ -742,6 +745,7 @@ function InnerViewer(props: InnerViewerProps) {
               <InnerViewer
                 key={index}
                 {...props}
+                jsonPath={jsonPath + (item.key ? `.${item.key}` : `[${index}]`)}
                 mode={mode}
                 node={item}
                 onValueChange={value => {
@@ -944,7 +948,7 @@ function calc(data: unknown, t: TokensResult): ViewerNode {
 // 入口组件
 interface DataViewerConfig {
   type?: DataType; // 强制制定数据类型 不填则根据数据自动判断
-  themeInfo?: ThemeRegistration; // 默认自定义主题 默认为vitesse-light
+  themeInfo?: ThemeRegistration; // 默认自定义主题 默认为one-light
   withoutButtonGroup?: boolean; // 是否不展示操作按钮组
   withToaster?: boolean; // 是否需要toaster
   withoutMaximize?: boolean; // 是否不展示最大化按钮
@@ -969,7 +973,7 @@ interface DataViewerProps {
 }
 
 interface DataViewerIntlProps extends DataViewerProps {
-  relativeJsonPath?: string;
+  jsonPath: string;
 }
 
 const localStorageThemeKey = 'conanyu-data-viewer.theme' as const;
@@ -1092,6 +1096,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                 setSource(JSON.stringify(value));
                 props.onDataChange?.(value);
               }}
+              jsonPath="$"
             />
           ) : (
             <div className="px-4">
@@ -1132,6 +1137,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                         props.onDataChange?.(value);
                       }}
                       config={{ ...props.config, withToaster: false, withoutMaximize: true }}
+                      jsonPath="$"
                     />
                   </DialogContent>
                 </Dialog>
@@ -1236,6 +1242,15 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(props.jsonPath);
+                        toast.success(`复制成功（${props.jsonPath}）`);
+                      }}
+                    >
+                      复制JSON Path
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
                       onClick={e => {
                         setWithButtonGroup(false);
                         props.onCloseButtonGroup?.(e.nativeEvent);
@@ -1269,7 +1284,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
 }
 
 function DataViewer(props: DataViewerProps) {
-  return <DataViewerIntl {...props} />;
+  return <DataViewerIntl {...props} jsonPath="$" />;
 }
 
 export {
