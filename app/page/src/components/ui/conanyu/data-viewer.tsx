@@ -319,7 +319,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange }) 
   const length = collapseLength(data);
   const viewer = (data: unknown, title?: string, callback?: (v: unknown) => void) => {
     return (
-      <DataViewer
+      <DataViewerIntl
         data={JSON.stringify(data)}
         title={title}
         config={{ ...config, withToaster: false }}
@@ -968,12 +968,16 @@ interface DataViewerProps {
   config?: DataViewerConfig;
 }
 
+interface DataViewerIntlProps extends DataViewerProps {
+  relativeJsonPath?: string;
+}
+
 const localStorageThemeKey = 'conanyu-data-viewer.theme' as const;
 const localStorageOpenMoveKey = 'conanyu-data-viewer.open-move' as const;
 
 const globalHighlighter: Map<ThemeRegistration, HighlighterGeneric<string, string>> = new Map();
 
-function DataViewer(props: DataViewerProps) {
+function DataViewerIntl(props: DataViewerIntlProps) {
   // 处理配置
   const {
     type,
@@ -1119,7 +1123,7 @@ function DataViewer(props: DataViewerProps) {
                     className="w-full !max-w-[80vw]"
                     aria-describedby={undefined}
                   >
-                    <DataViewer
+                    <DataViewerIntl
                       data={source}
                       className="border-2 rounded-md h-full max-h-[80vh]"
                       preClassName="h-full"
@@ -1262,6 +1266,10 @@ function DataViewer(props: DataViewerProps) {
       </div>
     </>
   );
+}
+
+function DataViewer(props: DataViewerProps) {
+  return <DataViewerIntl {...props} />;
 }
 
 export {
