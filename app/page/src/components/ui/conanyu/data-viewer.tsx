@@ -727,6 +727,13 @@ function InnerViewer(props: InnerViewerProps) {
           {interactionTrigger}
         </span>
       );
+    } else if (node.depth === 0) {
+      interactionTrigger = (
+        <span key="interaction-update">
+          {updateInteraction}
+          {interactionTrigger}
+        </span>
+      );
     }
   }
 
