@@ -1,5 +1,7 @@
 // https://github.com/conanyu/data-viewer/blob/main/app/page/src/components/ui/conanyu/data-viewer.tsx
 
+'use client';
+
 import JSONBigInt from 'json-bigint';
 import JSON5 from 'json5-bigint';
 import YAML from 'yaml';
@@ -14,6 +16,7 @@ import {
   CircleChevronUp,
   CircleMinus,
   CirclePlus,
+  CircleQuestionMark,
   CopyIcon,
   Ellipsis,
   EyeOff,
@@ -35,11 +38,16 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx';
 import { Textarea } from '@/components/ui/textarea.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group.tsx';
+import { JSONPath } from 'jsonpath-plus';
+import { Base64 } from 'js-base64';
 
 // theme
 import Andromeeda from 'tm-themes/themes/andromeeda.json';
@@ -102,8 +110,6 @@ import Vesper from 'tm-themes/themes/vesper.json';
 import VitesseBlack from 'tm-themes/themes/vitesse-black.json';
 import VitesseDark from 'tm-themes/themes/vitesse-dark.json';
 import VitesseLight from 'tm-themes/themes/vitesse-light.json';
-import * as React from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
 
 const themes = {
   Andromeeda: Andromeeda,
@@ -244,7 +250,7 @@ type Interaction = (r: {
   depth: number;
   config?: DataViewerConfig;
   onDataChange?: (data: unknown) => void;
-  jsonPath: string;
+  pointer: string;
 }) => InteractionResult;
 
 const TooltipButton = ({
@@ -316,7 +322,7 @@ function LongTextDialogContent({ data, config }: { data: string; config?: DataVi
   );
 }
 
-const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, jsonPath }) => {
+const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, pointer }) => {
   const length = collapseLength(data);
   const viewer = (data: unknown, title?: string, callback?: (v: unknown) => void) => {
     return (
@@ -327,7 +333,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, js
         className="border-2 rounded-md"
         preClassName="max-h-[80vh]"
         onDataChange={callback ?? onDataChange}
-        jsonPath={jsonPath}
+        pointer={pointer}
       />
     );
   };
@@ -340,9 +346,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, js
   if (typeof data === 'string' && data) {
     if (data.startsWith('https://') || data.startsWith('http://')) {
       return {
-        event: () => {
-          window.open(data, '_blank');
-        },
+        event: () => window.open(data, '_blank'),
         title: '链接',
       };
     }
@@ -372,6 +376,38 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, js
         };
       }
     }
+    try {
+      const getStringGarbageRatio = (str: string): number => {
+        if (!str) {
+          return 0.0;
+        }
+        // 定义有效字符的Unicode范围（可根据业务调整）
+        // 1. 中文：U+4E00-U+9FFF（中日韩统一表意文字）
+        // 2. 中文标点：U+3000-U+303F（全角标点）、U+FF00-U+FFEF（半角全角转换区）
+        // 3. 英文/基本符号：U+0020-U+007E（ASCII可打印字符）
+        const validCharRegex = /[\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF\u0020-\u007E]/;
+        let validCount = 0;
+        for (const char of str) {
+          if (validCharRegex.test(char)) {
+            validCount++;
+          }
+        }
+        // 计算有效字符比例
+        return validCount / str.length;
+      };
+      const decodedString = Base64.decode(data);
+      const confidence = getStringGarbageRatio(decodedString);
+      console.log(data, decodedString, confidence);
+      if ((data.length < 10 && confidence >= 1) || (data.length >= 10 && confidence >= 0.99)) {
+        return {
+          event: viewer(decodedString, 'Base64', v => {
+            onDataChange?.(Base64.encode(typeof v === 'string' ? v : JSON.stringify(v)));
+          }),
+          title: 'Base64',
+        };
+      }
+    } catch (e) {}
+
     if (data.length > (config?.showInteractionWithStringLengthGte ?? 100)) {
       return {
         event: <LongTextDialogContent data={data} config={config} />,
@@ -390,7 +426,7 @@ interface InnerViewerProps {
   onValueChange: (v: unknown) => void;
   config?: DataViewerConfig;
   onMove?: (e: 'up' | 'down') => void;
-  jsonPath: string;
+  pointer: string;
 }
 
 function collapseLength(v: unknown): number {
@@ -543,7 +579,7 @@ function UpdateValueDialogContent({
 }
 
 function InnerViewer(props: InnerViewerProps) {
-  const { node, config, themeInfo, mode, onValueChange, onMove, jsonPath } = props;
+  const { node, config, themeInfo, mode, onValueChange, onMove, pointer } = props;
   const { forceDefaultCollapseLengthGte, openMove } = config || {};
   const [collapsed, setCollapsed] = useState(node.length > (forceDefaultCollapseLengthGte || 100));
   const [keyHover, setKeyHover] = useState(false);
@@ -555,7 +591,7 @@ function InnerViewer(props: InnerViewerProps) {
   }, [node.length, config?.forceDefaultCollapseLengthGte]);
 
   const interaction = useMemo(() => {
-    const props = { data: node.data, depth: node.depth, config, onDataChange: onValueChange, jsonPath };
+    const props = { data: node.data, depth: node.depth, config, onDataChange: onValueChange, pointer };
     const interaction = config?.additionalInteraction?.(props);
     if (interaction?.highPriority) {
       return interaction;
@@ -717,7 +753,7 @@ function InnerViewer(props: InnerViewerProps) {
           return (
             <span
               key={index}
-              style={{ color: item.color }}
+              style={{ color: item.color, backgroundColor: item.bgColor }}
               className={cn(canCollapse && keyHover && 'cursor-pointer')}
               onMouseEnter={() => canCollapse && setKeyHover(true)}
               onMouseLeave={() => canCollapse && setKeyHover(false)}
@@ -745,7 +781,9 @@ function InnerViewer(props: InnerViewerProps) {
               <InnerViewer
                 key={index}
                 {...props}
-                jsonPath={jsonPath + (item.key ? `.${item.key}` : `[${index}]`)}
+                pointer={
+                  pointer + (item.key ? `/${item.key.replaceAll('~', '~0').replaceAll('/', '~1')}` : `/${index}`)
+                }
                 mode={mode}
                 node={item}
                 onValueChange={value => {
@@ -801,7 +839,7 @@ function InnerViewer(props: InnerViewerProps) {
           </div>
         ) : null}
         {node.after.map((item, index) => (
-          <span key={index} style={{ color: item.color }}>
+          <span key={index} style={{ color: item.color, backgroundColor: item.bgColor }}>
             {item.content}
           </span>
         ))}
@@ -822,6 +860,7 @@ type ViewerContentType =
 interface ViewerContent {
   content: string;
   color?: string;
+  bgColor?: string;
   type: ViewerContentType;
 }
 
@@ -845,8 +884,11 @@ function calcDfs(props: {
   key?: string;
   collapsedIndex?: number;
   collapsedLength?: number;
+  highlightPointer?: string[]; // 保证已排序
+  highlightColor: string;
+  pointer: string;
 }): [ViewerNode, number] {
-  const { data, color, from, depth, key, collapsedIndex, collapsedLength } = props;
+  const { data, color, from, depth, key, collapsedIndex, collapsedLength, highlightPointer, highlightColor } = props;
   const length = collapseLength(data);
   const node: ViewerNode = {
     key,
@@ -860,15 +902,39 @@ function calcDfs(props: {
     after: [],
   };
   let dfsIndex = from;
+  const highlightType: 'none' | 'partial' | 'all' = (() => {
+    if (highlightPointer && highlightPointer.length > 0) {
+      let left = 0,
+        right = highlightPointer.length - 1;
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        if (props.pointer === highlightPointer[mid]) {
+          return 'partial';
+        } else if (props.pointer.startsWith(highlightPointer[mid])) {
+          return 'all';
+        } else if (highlightPointer[mid] < props.pointer) {
+          left = mid + 1;
+        } else {
+          right = mid - 1;
+        }
+      }
+    }
+    return 'none';
+  })();
   const toViewerContent = (s: string, type?: ViewerContentType) => {
     const current: ViewerContent[] = [];
+    const bgColor =
+      highlightType === 'all' || (highlightType === 'partial' && type !== ViewerContentTypeKey)
+        ? highlightColor
+        : undefined;
     for (const c of s) {
       const lastColor = current?.[current.length - 1]?.color;
+      const lastBgColor = current?.[current.length - 1]?.bgColor;
       const currentColor = color?.[dfsIndex];
-      if (lastColor === currentColor) {
+      if (lastColor === currentColor && lastBgColor === bgColor) {
         current[current.length - 1].content += c;
       } else {
-        current.push({ content: c, color: currentColor, type: type || ViewerContentTypeNormal });
+        current.push({ content: c, color: currentColor, bgColor, type: type || ViewerContentTypeNormal });
       }
       dfsIndex++;
     }
@@ -876,7 +942,12 @@ function calcDfs(props: {
   };
   if (key !== undefined) {
     const current = toViewerContent(JSON.stringify(key), ViewerContentTypeKey);
-    node.before.push(...current, { content: ': ', color: color?.[dfsIndex], type: ViewerContentTypeNormal });
+    node.before.push(...current, {
+      content: ': ',
+      color: color?.[dfsIndex],
+      type: ViewerContentTypeNormal,
+      bgColor: highlightType === 'all' ? highlightColor : undefined,
+    });
     dfsIndex++;
   }
   node.before.push({ content: '', type: ViewerContentTypeInteraction });
@@ -896,6 +967,9 @@ function calcDfs(props: {
           depth: depth + 1,
           collapsedIndex: i,
           collapsedLength: length,
+          highlightPointer,
+          highlightColor,
+          pointer: props.pointer + `/${i}`,
         });
         node.children.push(child);
         dfsIndex = newDfsIndex;
@@ -916,6 +990,9 @@ function calcDfs(props: {
           key,
           collapsedIndex: i,
           collapsedLength: length,
+          highlightPointer,
+          highlightColor,
+          pointer: props.pointer + `/${key.replaceAll('~', '~0').replaceAll('/', '~1')}`,
         });
         node.children.push(child);
         dfsIndex = newDfsIndex;
@@ -925,15 +1002,25 @@ function calcDfs(props: {
       node.before.push(...toViewerContent('{}'));
     }
   }
-
   if (collapsedIndex !== undefined && collapsedIndex + 1 !== collapsedLength) {
-    node.after.push({ content: ',', color: color?.[dfsIndex], type: ViewerContentTypeNormal });
+    node.after.push({
+      content: ',',
+      color: color?.[dfsIndex],
+      type: ViewerContentTypeNormal,
+      bgColor: highlightType === 'all' ? highlightColor : undefined,
+    });
     dfsIndex++;
   }
+
   return [node, dfsIndex];
 }
 
-function calc(data: unknown, t: TokensResult): ViewerNode {
+function calc(
+  data: unknown,
+  t: TokensResult,
+  highlightPointer: string[] | undefined,
+  highlightColor: string,
+): ViewerNode {
   const color: (string | undefined)[] = [];
   for (const t1 of t.tokens) {
     for (const t2 of t1) {
@@ -942,7 +1029,102 @@ function calc(data: unknown, t: TokensResult): ViewerNode {
       }
     }
   }
-  return calcDfs({ data, color, from: 0, depth: 0 })[0];
+  return calcDfs({ data, color, from: 0, depth: 0, highlightPointer, highlightColor, pointer: '' })[0];
+}
+
+function JsonPathDialogContent({
+  source,
+  config,
+  pointer,
+}: {
+  source: unknown;
+  config?: DataViewerConfig;
+  pointer: string;
+}) {
+  const [jsonPath, setJsonPath] = useState('$');
+  const json = useMemo(() => JSON.stringify(source), [source]);
+  const result: string | { value: unknown; pointer: string }[] = useMemo(() => {
+    try {
+      return JSONPath({ path: jsonPath || '$', json: source!, resultType: 'all', wrap: true, ignoreEvalErrors: true });
+    } catch (e) {
+      return `${e}`;
+    }
+  }, [jsonPath, json]);
+  const dataViewerConfig = {
+    ...config,
+    uneditable: true,
+    withoutMaximize: true,
+    withToaster: false,
+    withThemeChange: false,
+  };
+  return (
+    <DialogContent
+      showCloseButton={false}
+      autoFocus={false}
+      onOpenAutoFocus={e => e.preventDefault()}
+      className="w-full !max-w-[80vw] max-h-[80vh]"
+      aria-describedby={undefined}
+    >
+      <VisuallyHidden asChild>
+        <DialogTitle />
+      </VisuallyHidden>
+      <div>
+        <InputGroup>
+          <InputGroupInput placeholder="$" value={jsonPath} onChange={e => setJsonPath(e.target.value)} />
+          <InputGroupAddon align="inline-end">
+            <Tooltip>
+              <TooltipTrigger>
+                <InputGroupButton
+                  className="rounded-full cursor-pointer"
+                  size="icon-xs"
+                  onClick={() => {
+                    window.open('https://github.com/JSONPath-Plus/JSONPath', '_blank');
+                  }}
+                >
+                  <CircleQuestionMark />
+                </InputGroupButton>
+              </TooltipTrigger>
+              <TooltipContent>规则详情</TooltipContent>
+            </Tooltip>
+          </InputGroupAddon>
+        </InputGroup>
+      </div>
+      <div className="flex gap-4">
+        <div className="w-1/3">
+          <DataViewerIntl
+            data={json}
+            config={dataViewerConfig}
+            className="rounded-md"
+            preClassName="rounded-md border-2 max-h-[calc(80vh-8rem)]"
+            pointer={pointer}
+            highlightPointer={
+              typeof result !== 'string'
+                ? result?.map(item => item.pointer)?.sort((a, b) => (a < b ? -1 : a == b ? 0 : 1))
+                : undefined
+            }
+          />
+        </div>
+        <div className="w-2/3">
+          {typeof result === 'string' ? (
+            <div
+              className="p-4 rounded-md border-2 h-full max-h-[calc(80vh-8rem)] font-mono"
+              style={{ color: config?.themeInfo?.colors?.['editorError.foreground'] }}
+            >
+              {result}
+            </div>
+          ) : (
+            <DataViewerIntl
+              data={JSON.stringify(result?.map(item => item.value))}
+              config={dataViewerConfig}
+              className="rounded-md"
+              preClassName="rounded-md border-2 max-h-[calc(80vh-8rem)]"
+              pointer=""
+            />
+          )}
+        </div>
+      </div>
+    </DialogContent>
+  );
 }
 
 // 入口组件
@@ -973,7 +1155,8 @@ interface DataViewerProps {
 }
 
 interface DataViewerIntlProps extends DataViewerProps {
-  jsonPath: string;
+  pointer: string; // https://datatracker.ietf.org/doc/html/rfc6901
+  highlightPointer?: string[];
 }
 
 const localStorageThemeKey = 'conanyu-data-viewer.theme' as const;
@@ -1020,13 +1203,14 @@ function DataViewerIntl(props: DataViewerIntlProps) {
         const openMove = localStorage.getItem(localStorageOpenMoveKey);
         return openMove === null ? null : openMove === 'true';
       })() ??
-      true
+      false
     );
   };
   const [openMove, setOpenMove] = useState(getOpenMove());
   useEffect(() => {
     setOpenMove(getOpenMove());
   }, [propOpenMove]);
+  const [jsonPathDialogOpen, setJsonPathDialogOpen] = useState(false);
 
   // 处理转化逻辑
   const data = useMemo(() => autoDetect({ data: source, type: type }), [source, type]);
@@ -1062,8 +1246,17 @@ function DataViewerIntl(props: DataViewerIntlProps) {
       ];
     }
     const t = highlighter[0].codeToTokens(JSON.stringify(data.data), { lang: 'json', theme: highlighter[1] });
-    return [t.bg, t.fg, calc(data.data, t)];
-  }, [data, highlighter, themeInfo]);
+    return [
+      t.bg,
+      t.fg,
+      calc(
+        data.data,
+        t,
+        props.highlightPointer,
+        themeInfo.colors?.['editor.findMatchHighlightBackground'] || '"#0000000C"',
+      ),
+    ];
+  }, [data, highlighter, themeInfo, props.highlightPointer]);
 
   return (
     <>
@@ -1078,12 +1271,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
           style={{ backgroundColor: bgColor, color: fgColor }}
         >
           {data.error ? (
-            <div
-              className="px-4"
-              style={{
-                color: themeInfo.colors?.['editorError.foreground'],
-              }}
-            >
+            <div className="px-4" style={{ color: themeInfo.colors?.['editorError.foreground'] }}>
               {data.error}
             </div>
           ) : root !== undefined ? (
@@ -1096,7 +1284,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                 setSource(JSON.stringify(value));
                 props.onDataChange?.(value);
               }}
-              jsonPath="$"
+              pointer=""
             />
           ) : (
             <div className="px-4">
@@ -1137,7 +1325,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                         props.onDataChange?.(value);
                       }}
                       config={{ ...props.config, withToaster: false, withoutMaximize: true }}
-                      jsonPath="$"
+                      pointer=""
                     />
                   </DialogContent>
                 </Dialog>
@@ -1225,6 +1413,15 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={async () => {
+                        await navigator.clipboard.writeText(JSON.stringify(JSON.stringify(data.data)));
+                        toast.success('复制成功');
+                      }}
+                    >
+                      复制为转义JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={async () => {
                         await navigator.clipboard.writeText(JSON5.stringify(data.data, null, 2));
                         toast.success('复制成功');
                       }}
@@ -1243,11 +1440,40 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={async () => {
-                        await navigator.clipboard.writeText(props.jsonPath);
-                        toast.success(`复制成功（${props.jsonPath}）`);
+                        const jsonPath =
+                          '$' +
+                          props.pointer
+                            .split('/')
+                            .map(item => `['${item.replaceAll('~0', '~').replaceAll('~1', '/')}']`)
+                            .join('');
+                        await navigator.clipboard.writeText(jsonPath);
+                        toast.success(`复制成功（${jsonPath}）`);
                       }}
                     >
                       复制JSON Path
+                    </DropdownMenuItem>
+                    {props.pointer.length > 0 && (
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(props.pointer);
+                          toast.success(`复制成功（${props.pointer}）`);
+                        }}
+                      >
+                        复制JSON Pointer
+                        <DropdownMenuShortcut
+                          className="cursor-help"
+                          onClick={e => {
+                            e.stopPropagation();
+                            window.open('https://datatracker.ietf.org/doc/html/rfc6901', '_blank');
+                          }}
+                        >
+                          <CircleQuestionMark />
+                        </DropdownMenuShortcut>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem className="cursor-pointer" onSelect={() => setJsonPathDialogOpen(true)}>
+                      根据JSON Path展示
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer"
@@ -1259,33 +1485,42 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                       隐藏工具栏
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
-                  <DropdownMenuLabel>设置</DropdownMenuLabel>
-                  <DropdownMenuGroup>
-                    <DropdownMenuCheckboxItem
-                      checked={openMove}
-                      className="cursor-pointer"
-                      onCheckedChange={checked => {
-                        setOpenMove(checked);
-                        props.onOpenMoveChange?.(checked);
-                        localStorage.setItem(localStorageOpenMoveKey, checked ? 'true' : 'false');
-                      }}
-                    >
-                      开启移动
-                    </DropdownMenuCheckboxItem>
-                  </DropdownMenuGroup>
+                  {!uneditable && (
+                    <>
+                      <DropdownMenuLabel>设置</DropdownMenuLabel>
+                      <DropdownMenuGroup>
+                        <DropdownMenuCheckboxItem
+                          checked={openMove}
+                          className="cursor-pointer"
+                          onCheckedChange={checked => {
+                            setOpenMove(checked);
+                            props.onOpenMoveChange?.(checked);
+                            localStorage.setItem(localStorageOpenMoveKey, checked ? 'true' : 'false');
+                          }}
+                        >
+                          开启移动
+                        </DropdownMenuCheckboxItem>
+                      </DropdownMenuGroup>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </ButtonGroup>
           </div>
         )}
       </div>
+      <Dialog open={jsonPathDialogOpen} onOpenChange={setJsonPathDialogOpen}>
+        <JsonPathDialogContent source={data.data} config={props.config} pointer={props.pointer} />
+      </Dialog>
     </>
   );
 }
 
 function DataViewer(props: DataViewerProps) {
-  return <DataViewerIntl {...props} jsonPath="$" />;
+  return <DataViewerIntl {...props} pointer="" />;
 }
+
+export default DataViewer;
 
 export {
   type DataType,

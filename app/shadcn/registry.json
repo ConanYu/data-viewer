@@ -12,13 +12,25 @@
         "dialog",
         "dropdown-menu",
         "input",
+        "input-group",
         "separator",
         "sonner",
         "textarea",
         "tooltip"
       ],
-      "dependencies": ["json-bigint", "json5-bigint", "shiki", "tm-themes", "yaml"],
-      "devDependencies": ["@types/json-bigint", "tailwind-scrollbar"],
+      "dependencies": [
+        "js-base64",
+        "jsonpath-plus",
+        "json-bigint",
+        "json5-bigint",
+        "shiki",
+        "tm-themes",
+        "yaml"
+      ],
+      "devDependencies": [
+        "@types/json-bigint",
+        "tailwind-scrollbar"
+      ],
       "css": {
         "@plugin tailwind-scrollbar": {}
       },
