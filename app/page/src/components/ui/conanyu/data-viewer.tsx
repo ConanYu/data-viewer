@@ -377,7 +377,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, po
       }
     }
     try {
-      const getStringGarbageRatio = (str: string): number => {
+      const getValidStringRatio = (str: string): number => {
         if (!str) {
           return 0.0;
         }
@@ -385,7 +385,8 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, po
         // 1. 中文：U+4E00-U+9FFF（中日韩统一表意文字）
         // 2. 中文标点：U+3000-U+303F（全角标点）、U+FF00-U+FFEF（半角全角转换区）
         // 3. 英文/基本符号：U+0020-U+007E（ASCII可打印字符）
-        const validCharRegex = /[\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF\u0020-\u007E]/;
+        // 4. 换行相关：CR(\r/U+000D)、LF(\n/U+000A)、Unicode行/段落分隔符
+        const validCharRegex = /[\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF\u0020-\u007E\r\n\u2028\u2029]/;
         let validCount = 0;
         for (const char of str) {
           if (validCharRegex.test(char)) {
@@ -396,7 +397,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, po
         return validCount / str.length;
       };
       const decodedString = Base64.decode(data);
-      const confidence = getStringGarbageRatio(decodedString);
+      const confidence = getValidStringRatio(decodedString);
       console.log(data, decodedString, confidence);
       if ((data.length < 10 && confidence >= 1) || (data.length >= 10 && confidence >= 0.99)) {
         return {
