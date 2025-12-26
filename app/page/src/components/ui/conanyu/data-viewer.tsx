@@ -402,7 +402,6 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, po
       };
       const decodedString = Base64.decode(data);
       const confidence = getValidStringRatio(decodedString);
-      console.log(data, decodedString, confidence);
       if ((data.length < 10 && confidence >= 1) || (data.length >= 10 && confidence >= 0.99)) {
         return {
           event: viewer(decodedString, 'Base64', v => {
@@ -1080,7 +1079,7 @@ function JsonPathDialogContent({
       <VisuallyHidden asChild>
         <DialogTitle />
       </VisuallyHidden>
-      <div>
+      <div className="w-[calc(80vw-3rem)]">
         <InputGroup>
           <InputGroupInput placeholder="$" value={jsonPath} onChange={e => setJsonPath(e.target.value)} />
           <InputGroupAddon align="inline-end">
@@ -1101,8 +1100,8 @@ function JsonPathDialogContent({
           </InputGroupAddon>
         </InputGroup>
       </div>
-      <div className="flex gap-4">
-        <div className="w-1/3">
+      <div className="flex gap-4 w-full">
+        <div className="w-[calc((80vw-4rem)/3)]">
           <DataViewerIntl
             data={json}
             config={dataViewerConfig}
@@ -1116,7 +1115,7 @@ function JsonPathDialogContent({
             }
           />
         </div>
-        <div className="w-2/3">
+        <div className="w-[calc((80vw-4rem)/3*2)]">
           {typeof result === 'string' ? (
             <div
               className="p-4 rounded-md border-2 h-full max-h-[calc(80vh-8rem)] font-mono"
