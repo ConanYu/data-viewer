@@ -1089,7 +1089,7 @@ function JsonPathDialogContent({
                   className="rounded-full cursor-pointer"
                   size="icon-xs"
                   onClick={() => {
-                    window.open('https://github.com/JSONPath-Plus/JSONPath', '_blank');
+                    window.open('https://github.com/JSONPath-Plus/JSONPath/blob/main/README.md', '_blank');
                   }}
                 >
                   <CircleQuestionMark />
@@ -1295,7 +1295,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                 setSource(JSONHandler.stringify(value));
                 props.onDataChange?.(value);
               }}
-              pointer=""
+              pointer={props.pointer}
             />
           ) : (
             <div className="px-4">
@@ -1336,7 +1336,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                         props.onDataChange?.(value);
                       }}
                       config={{ ...props.config, withToaster: false, withoutMaximize: true }}
-                      pointer=""
+                      pointer={props.pointer}
                     />
                   </DialogContent>
                 </Dialog>
@@ -1457,6 +1457,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                           '$' +
                           props.pointer
                             .split('/')
+                            .slice(1)
                             .map(item => `['${item.replaceAll('~0', '~').replaceAll('~1', '/')}']`)
                             .join('');
                         await navigator.clipboard.writeText(jsonPath);
