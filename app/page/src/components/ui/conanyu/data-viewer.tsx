@@ -3,7 +3,8 @@
 'use client';
 
 import JSONBigInt from 'json-bigint';
-import JSON5 from 'json5-bigint';
+import JSON5Normal from 'json5';
+import JSON5BigInt from 'json5-bigint';
 import YAML from 'yaml';
 import { ButtonGroup } from '@/components/ui/button-group.tsx';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
@@ -174,7 +175,10 @@ const themes = {
   'Vitesse Light': VitesseLight,
 };
 
-const JSON = JSONBigInt({ useNativeBigInt: true });
+const isSupportBigInt = typeof BigInt !== 'undefined';
+
+const JSONHandler = isSupportBigInt ? JSONBigInt({ useNativeBigInt: true }) : JSON;
+const JSON5 = isSupportBigInt ? JSON5BigInt : JSON5Normal;
 
 // 转化逻辑
 const dataType = ['json', 'json5', 'yaml'] as const;
@@ -182,16 +186,16 @@ type DataType = (typeof dataType)[number];
 
 type AutoDetectFunc = (text: string) => unknown;
 const autoDetectMap: Record<DataType, AutoDetectFunc> = {
-  json: JSON.parse,
+  json: JSONHandler.parse,
   json5: JSON5.parse,
-  yaml: (text: string) => YAML.parse(text, { intAsBigInt: true }),
+  yaml: (text: string) => YAML.parse(text, { intAsBigInt: isSupportBigInt }),
 };
 
 type StringifyFunc = (data: unknown) => string;
 const stringifyPrettyMap: Record<DataType, StringifyFunc> = {
-  json: (data: unknown) => JSON.stringify(data, null, 2),
-  json5: (data: unknown) => JSON.stringify(data, null, 2), // 即使原本是JSON5，也依旧使用JSON序列化
-  yaml: (data: unknown) => YAML.stringify(data, { intAsBigInt: true, indent: 2 }),
+  json: (data: unknown) => JSONHandler.stringify(data, null, 2),
+  json5: (data: unknown) => JSONHandler.stringify(data, null, 2), // 即使原本是JSON5，也依旧使用JSON序列化
+  yaml: (data: unknown) => YAML.stringify(data, { intAsBigInt: isSupportBigInt, indent: 2 }),
 };
 
 function autoDetect(props: { data: string; type?: DataType }):
@@ -327,7 +331,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, po
   const viewer = (data: unknown, title?: string, callback?: (v: unknown) => void) => {
     return (
       <DataViewerIntl
-        data={JSON.stringify(data)}
+        data={JSONHandler.stringify(data)}
         title={title}
         config={{ ...config, withToaster: false }}
         className="border-2 rounded-md"
@@ -361,13 +365,13 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, po
         let callback;
         switch (type) {
           case 'json':
-            callback = (v: unknown) => onDataChange?.(JSON.stringify(v));
+            callback = (v: unknown) => onDataChange?.(JSONHandler.stringify(v));
             break;
           case 'json5':
             callback = (v: unknown) => onDataChange?.(JSON5.stringify(v));
             break;
           case 'yaml':
-            callback = (v: unknown) => onDataChange?.(YAML.stringify(v));
+            callback = (v: unknown) => onDataChange?.(YAML.stringify(v, { intAsBigInt: isSupportBigInt, indent: 2 }));
             break;
         }
         return {
@@ -402,7 +406,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, po
       if ((data.length < 10 && confidence >= 1) || (data.length >= 10 && confidence >= 0.99)) {
         return {
           event: viewer(decodedString, 'Base64', v => {
-            onDataChange?.(Base64.encode(typeof v === 'string' ? v : JSON.stringify(v)));
+            onDataChange?.(Base64.encode(typeof v === 'string' ? v : JSONHandler.stringify(v)));
           }),
           title: 'Base64',
         };
@@ -618,7 +622,7 @@ function InnerViewer(props: InnerViewerProps) {
           setUpdateDialogOpen(false);
         }}
         defaultKey={node.key}
-        defaultValue={JSON.stringify(node.data, null, 2)}
+        defaultValue={JSONHandler.stringify(node.data, null, 2)}
       />
     </Dialog>
   );
@@ -949,7 +953,7 @@ function calcDfs(props: {
     return current;
   };
   if (key !== undefined) {
-    const current = toViewerContent(JSON.stringify(key), ViewerContentTypeKey);
+    const current = toViewerContent(JSONHandler.stringify(key), ViewerContentTypeKey);
     node.before.push(...current, {
       content: ': ',
       color: color?.[dfsIndex],
@@ -960,7 +964,7 @@ function calcDfs(props: {
   }
   node.before.push({ content: '', type: ViewerContentTypeInteraction });
   if (typeof data === 'string') {
-    node.before.push(...toViewerContent(JSON.stringify(data)));
+    node.before.push(...toViewerContent(JSONHandler.stringify(data)));
   } else if (typeof data === 'number' || typeof data === 'bigint' || typeof data === 'boolean' || data === null) {
     const text = data === null ? 'null' : data.toString();
     node.before.push(...toViewerContent(text));
@@ -1050,7 +1054,7 @@ function JsonPathDialogContent({
   pointer: string;
 }) {
   const [jsonPath, setJsonPath] = useState('$');
-  const json = useMemo(() => JSON.stringify(source), [source]);
+  const json = useMemo(() => JSONHandler.stringify(source), [source]);
   const result: string | { value: unknown; pointer: string }[] = useMemo(() => {
     try {
       return JSONPath({ path: jsonPath || '$', json: source!, resultType: 'all', wrap: true, ignoreEvalErrors: true });
@@ -1122,7 +1126,7 @@ function JsonPathDialogContent({
             </div>
           ) : (
             <DataViewerIntl
-              data={JSON.stringify(result?.map(item => item.value))}
+              data={JSONHandler.stringify(result?.map(item => item.value))}
               config={dataViewerConfig}
               className="rounded-md"
               preClassName="rounded-md border-2 max-h-[calc(80vh-8rem)]"
@@ -1253,7 +1257,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
         undefined,
       ];
     }
-    const t = highlighter[0].codeToTokens(JSON.stringify(data.data), { lang: 'json', theme: highlighter[1] });
+    const t = highlighter[0].codeToTokens(JSONHandler.stringify(data.data), { lang: 'json', theme: highlighter[1] });
     return [
       t.bg,
       t.fg,
@@ -1289,7 +1293,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
               node={root}
               config={{ ...props.config, openMove }}
               onValueChange={value => {
-                setSource(JSON.stringify(value));
+                setSource(JSONHandler.stringify(value));
                 props.onDataChange?.(value);
               }}
               pointer=""
@@ -1308,7 +1312,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                 tooltip="复制为JSON"
                 icon={<CopyIcon />}
                 onClick={async () => {
-                  await navigator.clipboard.writeText(JSON.stringify(data.data, null, 2));
+                  await navigator.clipboard.writeText(JSONHandler.stringify(data.data, null, 2));
                   toast.success('复制成功');
                 }}
               />
@@ -1412,7 +1416,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={async () => {
-                        await navigator.clipboard.writeText(JSON.stringify(data.data));
+                        await navigator.clipboard.writeText(JSONHandler.stringify(data.data));
                         toast.success('复制成功');
                       }}
                     >
@@ -1421,7 +1425,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={async () => {
-                        await navigator.clipboard.writeText(JSON.stringify(JSON.stringify(data.data)));
+                        await navigator.clipboard.writeText(JSONHandler.stringify(JSONHandler.stringify(data.data)));
                         toast.success('复制成功');
                       }}
                     >
@@ -1439,7 +1443,9 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                     <DropdownMenuItem
                       className="cursor-pointer"
                       onClick={async () => {
-                        await navigator.clipboard.writeText(YAML.stringify(data.data, null, 2));
+                        await navigator.clipboard.writeText(
+                          YAML.stringify(data.data, { intAsBigInt: isSupportBigInt, indent: 2 }),
+                        );
                         toast.success('复制成功');
                       }}
                     >

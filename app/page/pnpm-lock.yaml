@@ -41,6 +41,9 @@ importers:
       json-bigint:
         specifier: ^1.0.0
         version: 1.0.0
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
       json5-bigint:
         specifier: ^2.2.3
         version: 2.2.3
