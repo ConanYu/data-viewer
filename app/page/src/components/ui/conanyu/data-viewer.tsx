@@ -175,7 +175,7 @@ const themes = {
   'Vitesse Light': VitesseLight,
 };
 
-const isSupportBigInt = typeof BigInt !== 'undefined';
+const isSupportBigInt = typeof BigInt !== 'undefined' && !(window as any).__conanyu_data_viewer_no_bigint;
 
 const JSONHandler = isSupportBigInt ? JSONBigInt({ useNativeBigInt: true }) : JSON;
 const JSON5 = isSupportBigInt ? JSON5BigInt : JSON5Normal;
