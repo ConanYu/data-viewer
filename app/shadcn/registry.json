@@ -19,6 +19,7 @@
         "tooltip"
       ],
       "dependencies": [
+        "@radix-ui/react-visually-hidden",
         "js-base64",
         "jsonpath-plus",
         "json-bigint",
@@ -38,6 +39,50 @@
       "files": [
         {
           "path": "src/components/ui/conanyu/data-viewer.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "data-viewer-app",
+      "type": "registry:block",
+      "registryDependencies": [
+        "button",
+        "button-group",
+        "dialog",
+        "dropdown-menu",
+        "input",
+        "input-group",
+        "separator",
+        "sonner",
+        "textarea",
+        "tooltip"
+      ],
+      "dependencies": [
+        "@radix-ui/react-visually-hidden",
+        "js-base64",
+        "jsonpath-plus",
+        "json-bigint",
+        "json5",
+        "json5-bigint",
+        "shiki",
+        "tm-themes",
+        "yaml"
+      ],
+      "devDependencies": [
+        "@types/json-bigint",
+        "tailwind-scrollbar"
+      ],
+      "css": {
+        "@plugin tailwind-scrollbar": {}
+      },
+      "files": [
+        {
+          "path": "src/components/ui/conanyu/data-viewer.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "src/components/ui/conanyu/data-viewer-app.tsx",
           "type": "registry:component"
         }
       ]
