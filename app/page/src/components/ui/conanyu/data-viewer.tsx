@@ -333,7 +333,7 @@ const defaultInteraction: Interaction = ({ data, depth, config, onDataChange, po
       <DataViewerIntl
         data={JSONHandler.stringify(data)}
         title={title}
-        config={{ ...config, withToaster: false }}
+        config={{ ...config, withToaster: false, withoutMaximize: true }}
         className="border-2 rounded-md"
         preClassName="max-h-[80vh]"
         onDataChange={callback ?? onDataChange}
@@ -566,7 +566,7 @@ function UpdateValueDialogContent({
                 }
               }
             }}
-            config={{ ...config, withToaster: false }}
+            config={{ ...config, withToaster: false, withoutMaximize: true }}
           />
           <Button
             className="absolute bottom-3 right-5 cursor-pointer"
