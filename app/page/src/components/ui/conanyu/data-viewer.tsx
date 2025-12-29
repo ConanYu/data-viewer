@@ -29,7 +29,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner.tsx';
-import { createHighlighter, type HighlighterGeneric, type ThemeRegistration, type TokensResult } from 'shiki';
+import {
+  createHighlighter,
+  createJavaScriptRegexEngine,
+  type HighlighterGeneric,
+  type ThemeRegistration,
+  type TokensResult,
+} from 'shiki';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog.tsx';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import {
@@ -1151,6 +1157,8 @@ interface DataViewerConfig {
   additionalInteraction?: Interaction; // 自定义交互逻辑
   uneditable?: boolean; // 是否可编辑
   openMove?: boolean; // 默认是否开启移动操作
+  disableLocalStorage?: boolean; // 是否禁用localStorage
+  useShikiJavascriptEngine?: boolean; // 使用shiki javascript引擎
 }
 
 interface DataViewerProps {
@@ -1186,11 +1194,16 @@ function DataViewerIntl(props: DataViewerIntlProps) {
     withThemeChange,
     uneditable,
     openMove: propOpenMove,
+    disableLocalStorage,
+    useShikiJavascriptEngine,
   } = props.config || {};
   const getThemeInfo = () => {
     return (
       propThemeInfo ??
       (() => {
+        if (disableLocalStorage) {
+          return null;
+        }
         const theme = localStorage.getItem(localStorageThemeKey);
         return theme === null ? null : (JSON5.parse(theme) as ThemeRegistration);
       })() ??
@@ -1211,6 +1224,9 @@ function DataViewerIntl(props: DataViewerIntlProps) {
     return (
       propOpenMove ??
       (() => {
+        if (disableLocalStorage) {
+          return null;
+        }
         const openMove = localStorage.getItem(localStorageOpenMoveKey);
         return openMove === null ? null : openMove === 'true';
       })() ??
@@ -1241,6 +1257,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
         const highlighter = (await createHighlighter({
           langs: ['json'],
           themes: [theme],
+          engine: useShikiJavascriptEngine ? createJavaScriptRegexEngine() : undefined,
         })) as HighlighterGeneric<string, string>;
         setHighlighter([highlighter, theme]);
         globalHighlighter.set(theme, highlighter);
@@ -1380,7 +1397,9 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                           onClick={() => {
                             setThemeInfo(value as ThemeRegistration);
                             props.onThemeInfoChange?.(value as ThemeRegistration);
-                            localStorage.setItem(localStorageThemeKey, JSON5.stringify(value));
+                            if (!disableLocalStorage) {
+                              localStorage.setItem(localStorageThemeKey, JSON5.stringify(value));
+                            }
                           }}
                         >
                           {key}
@@ -1509,7 +1528,9 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                           onCheckedChange={checked => {
                             setOpenMove(checked);
                             props.onOpenMoveChange?.(checked);
-                            localStorage.setItem(localStorageOpenMoveKey, checked ? 'true' : 'false');
+                            if (!disableLocalStorage) {
+                              localStorage.setItem(localStorageOpenMoveKey, checked ? 'true' : 'false');
+                            }
                           }}
                         >
                           开启移动

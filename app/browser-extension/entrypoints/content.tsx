@@ -25,7 +25,6 @@ export default defineContentScript({
         } catch (e) {
           return;
         }
-        console.log(content, 'data-viewer-content');
 
         // 1. 清空原页面内容（若需保留部分元素，可替换为特定 DOM 操作）
         document.body.innerHTML = '';
@@ -45,6 +44,8 @@ export default defineContentScript({
               withoutMaximize: true,
               withThemeChange: true,
               withToaster: true,
+              disableLocalStorage: true,
+              useShikiJavascriptEngine: true,
             }}
           />,
         );
