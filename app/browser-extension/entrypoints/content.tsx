@@ -1,6 +1,5 @@
 import { storage } from '#imports';
 import ReactDOM from 'react-dom/client';
-import '@/styles/globals.css';
 import DataViewer from '@/components/ui/conanyu/data-viewer.tsx';
 
 export default defineContentScript({
@@ -8,6 +7,9 @@ export default defineContentScript({
   main() {
     const activeAutoDataShowStorageKey = 'local:active_auto_data_show' as const;
     const script = async () => {
+      if (!['application/json', 'text/plain'].includes(document.contentType)) {
+        return;
+      }
       const activeAutoDataShow = (await storage.getItem(activeAutoDataShowStorageKey)) !== false;
       if (activeAutoDataShow) {
         const getContent = (e: HTMLElement) => {
@@ -25,6 +27,9 @@ export default defineContentScript({
         } catch (e) {
           return;
         }
+
+        // 0. 引入全局样式
+        await import('@/styles/globals.css');
 
         // 1. 清空原页面内容（若需保留部分元素，可替换为特定 DOM 操作）
         document.body.innerHTML = '';
