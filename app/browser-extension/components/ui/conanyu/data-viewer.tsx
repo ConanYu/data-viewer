@@ -30,7 +30,6 @@ import { Toaster } from '@/components/ui/sonner';
 import {
   createHighlighter,
   createJavaScriptRegexEngine,
-  createOnigurumaEngine,
   type HighlighterGeneric,
   type ThemeRegistration,
   type TokensResult,
@@ -1253,13 +1252,11 @@ function DataViewerIntl(props: DataViewerIntlProps) {
       if (cachedHighlighter) {
         setHighlighter([cachedHighlighter, theme]);
       } else {
-        const highlighter = (await createHighlighter({
-          langs: ['json'],
-          themes: [theme],
-          engine: useShikiJavascriptEngine
-            ? createJavaScriptRegexEngine()
-            : await createOnigurumaEngine(import('shiki/wasm')),
-        })) as HighlighterGeneric<string, string>;
+        const highlighter = (await createHighlighter(
+          useShikiJavascriptEngine
+            ? { langs: ['json'], themes: [theme], engine: createJavaScriptRegexEngine() }
+            : { langs: ['json'], themes: [theme] },
+        )) as HighlighterGeneric<string, string>;
         setHighlighter([highlighter, theme]);
         globalHighlighter.set(theme, highlighter);
       }
