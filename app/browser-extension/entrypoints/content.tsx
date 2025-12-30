@@ -1,65 +1,59 @@
 import { storage } from '#imports';
+import '@/styles/globals.css';
 import ReactDOM from 'react-dom/client';
 import DataViewer from '@/components/ui/conanyu/data-viewer.tsx';
 
 export default defineContentScript({
-  matches: ['*://*/*'],
-  main() {
+  matches: ['<all_urls>'],
+  runAt: 'document_idle',
+  cssInjectionMode: 'ui',
+  async main(ctx) {
     const activeAutoDataShowStorageKey = 'local:active_auto_data_show' as const;
-    const script = async () => {
-      if (!['application/json', 'text/plain'].includes(document.contentType)) {
+    if (!['application/json', 'text/plain'].includes(document.contentType)) {
+      return;
+    }
+    const activeAutoDataShow = (await storage.getItem(activeAutoDataShowStorageKey)) !== false;
+    if (activeAutoDataShow) {
+      const getContent = (e: HTMLElement) => {
+        let content = '';
+        for (const child of e.children) {
+          if (child.tagName === 'PRE') {
+            content += child.textContent;
+          }
+        }
+        return content;
+      };
+      const content = getContent(document.body);
+      try {
+        JSON.parse(content);
+      } catch (e) {
         return;
       }
-      const activeAutoDataShow = (await storage.getItem(activeAutoDataShowStorageKey)) !== false;
-      if (activeAutoDataShow) {
-        const getContent = (e: HTMLElement) => {
-          let content = '';
-          for (const child of e.children) {
-            if (child.tagName === 'PRE') {
-              content += child.textContent;
-            }
-          }
-          return content;
-        };
-        const content = getContent(document.body);
-        try {
-          JSON.parse(content);
-        } catch (e) {
-          return;
-        }
 
-        // 0. 引入全局样式
-        await import('@/styles/globals.css');
+      document.body.innerHTML = '';
+      document.body.style.margin = '0';
 
-        // 1. 清空原页面内容（若需保留部分元素，可替换为特定 DOM 操作）
-        document.body.innerHTML = '';
-
-        // 2. 创建 React 挂载容器
-        const container = document.createElement('div');
-        // 将容器加入 body
-        document.body.appendChild(container);
-
-        // 3. 挂载 React 组件（React 18+ 写法）
-        const root = ReactDOM.createRoot(container);
-        root.render(
-          <DataViewer
-            data={content}
-            preClassName="overflow-auto"
-            config={{
-              withoutMaximize: true,
-              withThemeChange: true,
-              withToaster: true,
-              disableLocalStorage: true,
-              useShikiJavascriptEngine: true,
-            }}
-          />,
-        );
-      }
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', script);
-    } else {
-      script();
+      const ui = await createShadowRootUi(ctx, {
+        name: 'example-ui',
+        position: 'inline',
+        anchor: 'body',
+        onMount(container) {
+          const root = ReactDOM.createRoot(container);
+          root.render(
+            <DataViewer
+              data={content}
+              preClassName="overflow-auto"
+              config={{
+                withoutMaximize: true,
+                withToaster: true,
+                disableLocalStorage: true,
+                useShikiJavascriptEngine: true,
+              }}
+            />,
+          );
+        },
+      });
+      ui.mount();
     }
   },
 });
