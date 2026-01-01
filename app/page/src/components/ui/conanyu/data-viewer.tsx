@@ -486,6 +486,7 @@ function InteractionTriangle({
     <span
       className={cn(
         'cursor-pointer absolute text-center left-4 select-none top-[-0.2rem] text-base opacity-70',
+        isNotMac && 'top-[-0.1rem]',
         collapsed && 'rotate-270',
       )}
       onClick={e => onClick(e.nativeEvent)}
