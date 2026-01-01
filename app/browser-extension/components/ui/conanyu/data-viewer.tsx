@@ -441,6 +441,8 @@ function collapseLength(v: unknown): number {
   return typeof v === 'object' && v !== null ? Object.keys(v).length : 0;
 }
 
+const isNotMac = !/Mac|iPhone|iPod|iPad/i.test(navigator.userAgent);
+
 function InteractionCircle({
   onClick,
   className,
@@ -463,7 +465,7 @@ function InteractionCircle({
           : themeInfo.colors?.['button.background'],
       }}
     >
-      <div className="w-2.5 h-2.5 rounded-full bg-current" />
+      <div className={cn('w-2.5 h-2.5 rounded-full bg-current', isNotMac && 'relative top-[0.1rem]')} />
     </span>
   );
 }
