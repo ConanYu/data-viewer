@@ -445,12 +445,10 @@ function collapseLength(v: unknown): number {
 
 function InteractionCircle({
   onClick,
-  content,
   className,
   themeInfo,
 }: {
   onClick: (e: MouseEvent) => void;
-  content: string;
   className?: string;
   themeInfo: ThemeRegistration;
 }) {
@@ -467,7 +465,7 @@ function InteractionCircle({
           : themeInfo.colors?.['button.background'],
       }}
     >
-      {content}
+      <div className="w-2.5 h-2.5 rounded-full bg-current" />
     </span>
   );
 }
@@ -636,7 +634,6 @@ function InnerViewer(props: InnerViewerProps) {
     if (interaction) {
       interactionTrigger = (
         <InteractionCircle
-          content={'\u25CF'}
           key="interaction-trigger"
           onClick={e => {
             if (typeof interaction.event === 'function') {
@@ -761,7 +758,7 @@ function InnerViewer(props: InnerViewerProps) {
         {node.before.map((item, index) => {
           if (item.type === ViewerContentTypeInteraction) {
             return (
-              <span key="interaction-other" className="mr-0.5">
+              <span key="interaction-other" className={cn(interactionTrigger && 'mr-1')}>
                 {interactionTrigger}
               </span>
             );
