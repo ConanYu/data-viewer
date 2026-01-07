@@ -1041,7 +1041,7 @@ function calc(
   const color: (string | undefined)[] = [];
   for (const t1 of t.tokens) {
     for (const t2 of t1) {
-      for (let i = 0; i < t2.content.length; i++) {
+      for (const _ of t2.content) {
         color.push(t2.color);
       }
     }
