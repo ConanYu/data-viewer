@@ -1,4 +1,5 @@
 import '@/styles/globals.css';
+import 'sonner/dist/styles.css';
 import ReactDOM from 'react-dom/client';
 import DataViewer from '@/components/ui/conanyu/data-viewer.tsx';
 import JSON5 from 'json5-bigint';
