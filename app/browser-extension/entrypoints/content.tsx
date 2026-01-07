@@ -1,6 +1,8 @@
 import '@/styles/globals.css';
 import ReactDOM from 'react-dom/client';
 import DataViewer from '@/components/ui/conanyu/data-viewer.tsx';
+import JSON5 from 'json5-bigint';
+import YAML from 'yaml';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -8,7 +10,13 @@ export default defineContentScript({
   cssInjectionMode: 'ui',
   async main(ctx) {
     const activeAutoDataShowStorageKey = 'local:active_auto_data_show' as const;
-    if (!['application/json', 'text/plain'].includes(document.contentType)) {
+    const parser = {
+      'application/json': JSON5.parse,
+      'text/plain': JSON5.parse,
+      'application/json5': JSON5.parse,
+      'application/yaml': (text: string) => YAML.parse(text, { intAsBigInt: true }),
+    }[document.contentType];
+    if (!parser) {
       return;
     }
     const activeAutoDataShow = (await storage.getItem(activeAutoDataShowStorageKey)) !== false;
@@ -16,22 +24,18 @@ export default defineContentScript({
       const getContent = (e: HTMLElement) => {
         let content = '';
         for (const child of e.children) {
-          if (child.tagName === 'PRE') {
-            content += child.textContent;
-          }
+          content += child.textContent;
         }
         return content;
       };
       const content = getContent(document.body);
       try {
-        JSON.parse(content);
+        const _ = parser(content);
       } catch (e) {
         return;
       }
-
       document.body.innerHTML = '';
       document.body.style.margin = '0';
-
       const ui = await createShadowRootUi(ctx, {
         name: 'example-ui',
         position: 'inline',
@@ -42,7 +46,7 @@ export default defineContentScript({
           root.render(
             <DataViewer
               data={content}
-              preClassName="overflow-auto"
+              preClassName="overflow-auto h-[100vh]"
               config={{
                 withoutMaximize: true,
                 withToaster: true,
