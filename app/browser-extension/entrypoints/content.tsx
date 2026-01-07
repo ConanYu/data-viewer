@@ -1,4 +1,3 @@
-import { storage } from '#imports';
 import '@/styles/globals.css';
 import ReactDOM from 'react-dom/client';
 import DataViewer from '@/components/ui/conanyu/data-viewer.tsx';
@@ -38,6 +37,7 @@ export default defineContentScript({
         position: 'inline',
         anchor: 'body',
         onMount(container) {
+          (window as any).__shadow_container = container;
           const root = ReactDOM.createRoot(container);
           root.render(
             <DataViewer

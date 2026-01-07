@@ -1,7 +1,6 @@
 import { Label } from '@/components/ui/label.tsx';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { Button } from '@/components/ui/button.tsx';
-import { storage } from '#imports';
 
 export default function App() {
   const activeAutoDataShowStorageKey = 'local:active_auto_data_show' as const;

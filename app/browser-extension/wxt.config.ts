@@ -12,6 +12,18 @@ export default defineConfig({
     plugins: [
       tailwindcss(),
       {
+        name: 'update-portal',
+        transform(code, id) {
+          if (id.endsWith('@radix-ui/react-portal/dist/index.mjs')) {
+            return code.replaceAll(
+              'globalThis?.document?.body',
+              '(window.__shadow_container || globalThis?.document?.body)',
+            );
+          }
+          return null;
+        },
+      },
+      {
         name: 'to-utf8',
         generateBundle(_, bundle) {
           // Iterate through each asset in the bundle
