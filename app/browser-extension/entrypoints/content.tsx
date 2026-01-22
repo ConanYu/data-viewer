@@ -38,7 +38,7 @@ export default defineContentScript({
       document.body.innerHTML = '';
       document.body.style.margin = '0';
       const ui = await createShadowRootUi(ctx, {
-        name: 'example-ui',
+        name: 'data-viewer-ui',
         position: 'inline',
         anchor: 'body',
         onMount(container) {

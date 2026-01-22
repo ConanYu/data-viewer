@@ -1272,16 +1272,19 @@ function DataViewerIntl(props: DataViewerIntlProps) {
       ];
     }
     const t = highlighter[0].codeToTokens(JSONHandler.stringify(data.data), { lang: 'json', theme: highlighter[1] });
-    return [
-      t.bg,
-      t.fg,
-      calc(
+    let r: ViewerNode | undefined = undefined;
+    try {
+      r = calc(
         data.data,
         t,
         props.highlightPointer,
         themeInfo.colors?.['editor.findMatchHighlightBackground'] || '"#0000000C"',
-      ),
-    ];
+      );
+    } catch (e) {
+      console.error(e);
+      toast.error(`非预期错误：${e}`);
+    }
+    return [t.bg, t.fg, r];
   }, [data, highlighter, themeInfo, props.highlightPointer]);
 
   return (
