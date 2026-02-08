@@ -1093,7 +1093,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
 
       const drawIcon = (x: number, y: number, kind: CanvasHitType, pointer: string) => {
         const cx = x + iconSize / 2;
-        const cy = y + lineHeight / 2;
+        const cy = y + lineHeight / 2 - 2;
         const stroke = normalizeCssColor(themeInfo.colors?.['button.background'], 178) || '#999';
         const hoverStroke =
           normalizeCssColor(themeInfo.colors?.['button.hoverBackground']) ||
@@ -1104,18 +1104,18 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
         ctx.save();
         ctx.strokeStyle = color;
         ctx.fillStyle = color;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.2;
 
         if (kind === 'interaction') {
           ctx.beginPath();
-          ctx.arc(cx, cy - 2, 5, 0, Math.PI * 2);
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
           ctx.fill();
         } else {
           ctx.beginPath();
-          ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
           ctx.stroke();
-          ctx.lineWidth = 1.5;
-          const s = 3.5;
+          ctx.lineWidth = 1;
+          const s = 2.5;
           if (kind === 'edit-add') {
             ctx.beginPath();
             ctx.moveTo(cx - s, cy);
