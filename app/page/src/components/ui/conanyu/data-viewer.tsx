@@ -748,7 +748,8 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
   const { node, config, themeInfo, mode, onValueChange } = props;
   const bgColor = themeInfo?.bg || themeInfo?.colors?.['editor.background'];
   const fgColor = themeInfo?.fg || themeInfo?.colors?.['editor.foreground'];
-  const [collapsed, setCollapsed] = useState(false);
+  // Canvas 模式需要支持任意层级折叠，这里用 pointer 作为 key 维护折叠状态。
+  const [collapsedSet, setCollapsedSet] = useState<Set<string>>(() => new Set());
 
   type CanvasHitType =
     | 'toggle-triangle'
@@ -777,6 +778,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
   const hitRegionsRef = useRef<CanvasHitRegion[]>([]);
   const rafRef = useRef<number | null>(null);
   const hoverRef = useRef<Pick<CanvasHitRegion, 'type' | 'pointer'> | null>(null);
+  const scheduleDrawRef = useRef<() => void>(() => {});
 
   const [viewport, setViewport] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
 
@@ -974,7 +976,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
     };
 
     const walk = (n: ViewerNode, pointer: string, depth: number) => {
-      const rowCollapsed = depth === 0 ? collapsed : false;
+      const rowCollapsed = collapsedSet.has(pointer);
       nextRows.push({ kind: 'before', node: n, pointer, depth, collapsed: rowCollapsed });
 
       // Approx width: before + (collapsed count?) + (after inline?) + indent
@@ -1018,7 +1020,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
       contentWidth: Math.max(1, maxW),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node, props.pointer, collapsed, themeInfo]);
+  }, [node, props.pointer, collapsedSet, themeInfo]);
 
   const scheduleDraw = () => {
     if (rafRef.current !== null) return;
@@ -1325,18 +1327,21 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
     });
   };
 
+  // 避免 scroll/resize listener 捕获旧的 scheduleDraw（否则折叠状态会在滚动后“恢复”）。
+  scheduleDrawRef.current = scheduleDraw;
+
   useEffect(() => {
     const scroller = scrollRef.current;
     if (!scroller) return;
-    const onScroll = () => scheduleDraw();
+    const onScroll = () => scheduleDrawRef.current();
     scroller.addEventListener('scroll', onScroll, { passive: true });
     const ro = new ResizeObserver(() => {
       setViewport({ w: scroller.clientWidth, h: scroller.clientHeight });
-      scheduleDraw();
+      scheduleDrawRef.current();
     });
     ro.observe(scroller);
     setViewport({ w: scroller.clientWidth, h: scroller.clientHeight });
-    scheduleDraw();
+    scheduleDrawRef.current();
     return () => {
       scroller.removeEventListener('scroll', onScroll);
       ro.disconnect();
@@ -1391,9 +1396,17 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
       case 'toggle-triangle':
       case 'toggle-key':
       case 'toggle-collapsed-count':
-        // 仅根节点可折叠：Canvas 模式避免维护 collapsedMap。
-        if (pointer === props.pointer) {
-          setCollapsed(v => !v);
+        // 任意层级折叠：pointer 唯一标识节点。
+        if (n.length > 0) {
+          setCollapsedSet(prev => {
+            const next = new Set(prev);
+            if (hit.type === 'toggle-collapsed-count') {
+              next.delete(pointer);
+            } else {
+              next.has(pointer) ? next.delete(pointer) : next.add(pointer);
+            }
+            return next;
+          });
         }
         break;
       case 'interaction': {
