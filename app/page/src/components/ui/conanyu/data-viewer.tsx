@@ -474,15 +474,11 @@ function UpdateValueDialogContent({
 
 function InnerViewer(props: InnerViewerProps) {
   const { node, config, themeInfo, mode, onValueChange, onMove, pointer } = props;
-  const { forceDefaultCollapseLengthGte, openMove } = config || {};
-  const [collapsed, setCollapsed] = useState(node.length > (forceDefaultCollapseLengthGte || 100));
+  const { openMove } = config || {};
+  const [collapsed, setCollapsed] = useState(false);
   const [keyHover, setKeyHover] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
-
-  useEffect(() => {
-    setCollapsed(node.length > (forceDefaultCollapseLengthGte || 100));
-  }, [node.length, config?.forceDefaultCollapseLengthGte]);
 
   const interaction = useMemo(() => {
     const props = { data: node.data, depth: node.depth, config, onDataChange: onValueChange, pointer };
@@ -752,6 +748,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
   const { node, config, themeInfo, mode, onValueChange } = props;
   const bgColor = themeInfo?.bg || themeInfo?.colors?.['editor.background'];
   const fgColor = themeInfo?.fg || themeInfo?.colors?.['editor.foreground'];
+  const [collapsed, setCollapsed] = useState(false);
 
   type CanvasHitType =
     | 'toggle-triangle'
@@ -782,8 +779,6 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
   const hoverRef = useRef<Pick<CanvasHitRegion, 'type' | 'pointer'> | null>(null);
 
   const [viewport, setViewport] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
-
-  const [collapsedMap, setCollapsedMap] = useState<Map<string, boolean>>(() => new Map());
 
   const [interactionDialog, setInteractionDialog] = useState<{
     open: boolean;
@@ -850,16 +845,6 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
       return Object.fromEntries(entries);
     }
     return root;
-  };
-
-  const toggleCollapsed = (pointer: string, n: ViewerNode) => {
-    const threshold = config?.forceDefaultCollapseLengthGte ?? 100;
-    setCollapsedMap(prev => {
-      const current = prev.get(pointer) ?? n.length > threshold;
-      const next = new Map(prev);
-      next.set(pointer, !current);
-      return next;
-    });
   };
 
   const applyUpdateValue = (fullPointer: string, value: unknown) => {
@@ -951,11 +936,6 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
     return defaultInteraction(iProps) || custom;
   };
 
-  const isCollapsed = (pointer: string, n: ViewerNode) => {
-    const threshold = config?.forceDefaultCollapseLengthGte ?? 100;
-    return collapsedMap.get(pointer) ?? n.length > threshold;
-  };
-
   const { rows, guides, contentHeight, contentWidth } = useMemo(() => {
     const fontSize = 14;
     const lineHeight = 20;
@@ -994,18 +974,18 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
     };
 
     const walk = (n: ViewerNode, pointer: string, depth: number) => {
-      const collapsed = isCollapsed(pointer, n);
-      nextRows.push({ kind: 'before', node: n, pointer, depth, collapsed });
+      const rowCollapsed = depth === 0 ? collapsed : false;
+      nextRows.push({ kind: 'before', node: n, pointer, depth, collapsed: rowCollapsed });
 
       // Approx width: before + (collapsed count?) + (after inline?) + indent
       const baseX = textOffsetX + depth * indentPx;
       const beforeW = measureContentWidth(n.before);
       const countW =
-        collapsed && n.length > 0 ? mctx.measureText(`${n.length} item${n.length > 1 ? 's' : ''}`).width + 24 : 0;
-      const afterInlineW = collapsed || n.children.length === 0 ? measureContentWidth(n.after) : 0;
+        rowCollapsed && n.length > 0 ? mctx.measureText(`${n.length} item${n.length > 1 ? 's' : ''}`).width + 24 : 0;
+      const afterInlineW = rowCollapsed || n.children.length === 0 ? measureContentWidth(n.after) : 0;
       maxW = Math.max(maxW, baseX + beforeW + countW + afterInlineW + 32);
 
-      if (!collapsed && n.children.length > 0) {
+      if (!rowCollapsed && n.children.length > 0) {
         const childStart = nextRows.length;
         n.children.forEach((child, index) => {
           const childPointer =
@@ -1038,7 +1018,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
       contentWidth: Math.max(1, maxW),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node, props.pointer, collapsedMap, config?.forceDefaultCollapseLengthGte, themeInfo]);
+  }, [node, props.pointer, collapsed, themeInfo]);
 
   const scheduleDraw = () => {
     if (rafRef.current !== null) return;
@@ -1176,9 +1156,16 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
         ctx.restore();
       };
 
-      const drawContents = (x0: number, y0: number, contents: ViewerContent[], pointer: string, n: ViewerNode) => {
+      const drawContents = (
+        x0: number,
+        y0: number,
+        contents: ViewerContent[],
+        pointer: string,
+        n: ViewerNode,
+        allowCollapse: boolean,
+      ) => {
         let x = x0;
-        const canCollapse = n.length > 0;
+        const canCollapse = allowCollapse && n.length > 0;
         let keyStart: number | null = null;
         let keyEnd: number | null = null;
 
@@ -1292,7 +1279,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
           }
 
           const x0 = textOffsetX + row.depth * indentPx;
-          let x = drawContents(x0, y, n.before, pointer, n);
+          let x = drawContents(x0, y, n.before, pointer, n, true);
 
           if (row.collapsed) {
             const countText = `${n.length} item${n.length > 1 ? 's' : ''}`;
@@ -1324,13 +1311,13 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
 
           // Inline after when collapsed or leaf
           if (row.collapsed || n.children.length === 0) {
-            drawContents(x, y, n.after, pointer, n);
+            drawContents(x, y, n.after, pointer, n, false);
           }
         } else {
           const n = row.node;
           const pointer = row.pointer;
           const x0 = textOffsetX + row.depth * indentPx;
-          drawContents(x0, y, n.after, pointer, n);
+          drawContents(x0, y, n.after, pointer, n, false);
         }
       }
 
@@ -1404,7 +1391,10 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
       case 'toggle-triangle':
       case 'toggle-key':
       case 'toggle-collapsed-count':
-        toggleCollapsed(pointer, n);
+        // 仅根节点可折叠：Canvas 模式避免维护 collapsedMap。
+        if (pointer === props.pointer) {
+          setCollapsed(v => !v);
+        }
         break;
       case 'interaction': {
         const interaction = getInteraction(n, pointer);
@@ -1795,7 +1785,6 @@ interface DataViewerConfig {
   withoutButtonGroup?: boolean; // 是否不展示操作按钮组
   withToaster?: boolean; // 是否需要toaster
   withoutMaximize?: boolean; // 是否不展示最大化按钮
-  forceDefaultCollapseLengthGte?: number; // 强制默认折叠长度 不填则为100
   showInteractionWithStringLengthGte?: number; // 展示交互的字符串长度阈值 不填则为100
   additionalInteraction?: Interaction; // 自定义交互逻辑
   uneditable?: boolean; // 是否可编辑
