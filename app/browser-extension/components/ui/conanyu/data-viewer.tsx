@@ -5,7 +5,15 @@ import JSON5Normal from 'json5';
 import JSON5BigInt from 'json5-bigint';
 import YAML from 'yaml';
 import { ButtonGroup } from '@/components/ui/button-group';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import {
+  type ComponentProps,
+  type MouseEventHandler,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
@@ -21,7 +29,6 @@ import {
   EyeOff,
   LoaderCircle,
   Maximize,
-  Palette,
   Sparkle,
   SquarePen,
 } from 'lucide-react';
@@ -53,131 +60,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
 import { JSONPath } from 'jsonpath-plus';
 import { Base64 } from 'js-base64';
-
-// theme
-import Andromeeda from 'tm-themes/themes/andromeeda.json';
-import AuroraX from 'tm-themes/themes/aurora-x.json';
-import AyuDark from 'tm-themes/themes/ayu-dark.json';
-import CatppuccinFrappe from 'tm-themes/themes/catppuccin-frappe.json';
-import CatppuccinLatte from 'tm-themes/themes/catppuccin-latte.json';
-import CatppuccinMacchiato from 'tm-themes/themes/catppuccin-macchiato.json';
-import CatppuccinMocha from 'tm-themes/themes/catppuccin-mocha.json';
-import DarkPlus from 'tm-themes/themes/dark-plus.json';
-import Dracula from 'tm-themes/themes/dracula.json';
-import DraculaSoft from 'tm-themes/themes/dracula-soft.json';
-import EverforestDark from 'tm-themes/themes/everforest-dark.json';
-import EverforestLight from 'tm-themes/themes/everforest-light.json';
-import GitHubDark from 'tm-themes/themes/github-dark.json';
-import GitHubDarkDefault from 'tm-themes/themes/github-dark-default.json';
-import GitHubDarkDimmed from 'tm-themes/themes/github-dark-dimmed.json';
-import GitHubDarkHighContrast from 'tm-themes/themes/github-dark-high-contrast.json';
-import GitHubLight from 'tm-themes/themes/github-light.json';
-import GitHubLightDefault from 'tm-themes/themes/github-light-default.json';
-import GitHubLightHighContrast from 'tm-themes/themes/github-light-high-contrast.json';
-import GruvboxDarkHard from 'tm-themes/themes/gruvbox-dark-hard.json';
-import GruvboxDarkMedium from 'tm-themes/themes/gruvbox-dark-medium.json';
-import GruvboxDarkSoft from 'tm-themes/themes/gruvbox-dark-soft.json';
-import GruvboxLightHard from 'tm-themes/themes/gruvbox-light-hard.json';
-import GruvboxLightMedium from 'tm-themes/themes/gruvbox-light-medium.json';
-import GruvboxLightSoft from 'tm-themes/themes/gruvbox-light-soft.json';
-import Houston from 'tm-themes/themes/houston.json';
-import KanagawaDragon from 'tm-themes/themes/kanagawa-dragon.json';
-import KanagawaLotus from 'tm-themes/themes/kanagawa-lotus.json';
-import KanagawaWave from 'tm-themes/themes/kanagawa-wave.json';
-import LaserWave from 'tm-themes/themes/laserwave.json';
-import LightPlus from 'tm-themes/themes/light-plus.json';
-import MaterialTheme from 'tm-themes/themes/material-theme.json';
-import MaterialThemeDarker from 'tm-themes/themes/material-theme-darker.json';
-import MaterialThemeLighter from 'tm-themes/themes/material-theme-lighter.json';
-import MaterialThemeOcean from 'tm-themes/themes/material-theme-ocean.json';
-import MaterialThemePalenight from 'tm-themes/themes/material-theme-palenight.json';
-import MinDark from 'tm-themes/themes/min-dark.json';
-import MinLight from 'tm-themes/themes/min-light.json';
-import Monokai from 'tm-themes/themes/monokai.json';
-import NightOwl from 'tm-themes/themes/night-owl.json';
-import Nord from 'tm-themes/themes/nord.json';
-import OneDarkPro from 'tm-themes/themes/one-dark-pro.json';
 import OneLight from 'tm-themes/themes/one-light.json';
-import Plastic from 'tm-themes/themes/plastic.json';
-import Poimandres from 'tm-themes/themes/poimandres.json';
-import Red from 'tm-themes/themes/red.json';
-import RosePine from 'tm-themes/themes/rose-pine.json';
-import RosePineDawn from 'tm-themes/themes/rose-pine-dawn.json';
-import RosePineMoon from 'tm-themes/themes/rose-pine-moon.json';
-import SlackDark from 'tm-themes/themes/slack-dark.json';
-import SlackOchin from 'tm-themes/themes/slack-ochin.json';
-import SnazzyLight from 'tm-themes/themes/snazzy-light.json';
-import SolarizedDark from 'tm-themes/themes/solarized-dark.json';
-import SolarizedLight from 'tm-themes/themes/solarized-light.json';
-import Synthwave84 from 'tm-themes/themes/synthwave-84.json';
-import TokyoNight from 'tm-themes/themes/tokyo-night.json';
-import Vesper from 'tm-themes/themes/vesper.json';
-import VitesseBlack from 'tm-themes/themes/vitesse-black.json';
-import VitesseDark from 'tm-themes/themes/vitesse-dark.json';
-import VitesseLight from 'tm-themes/themes/vitesse-light.json';
-
-const themes = {
-  Andromeeda: Andromeeda,
-  'Aurora X': AuroraX,
-  'Ayu Dark': AyuDark,
-  'Catppuccin Frappé': CatppuccinFrappe,
-  'Catppuccin Latte': CatppuccinLatte,
-  'Catppuccin Macchiato': CatppuccinMacchiato,
-  'Catppuccin Mocha': CatppuccinMocha,
-  'Dark Plus': DarkPlus,
-  'Dracula Theme': Dracula,
-  'Dracula Theme Soft': DraculaSoft,
-  'Everforest Dark': EverforestDark,
-  'Everforest Light': EverforestLight,
-  'GitHub Dark': GitHubDark,
-  'GitHub Dark Default': GitHubDarkDefault,
-  'GitHub Dark Dimmed': GitHubDarkDimmed,
-  'GitHub Dark High Contrast': GitHubDarkHighContrast,
-  'GitHub Light': GitHubLight,
-  'GitHub Light Default': GitHubLightDefault,
-  'GitHub Light High Contrast': GitHubLightHighContrast,
-  'Gruvbox Dark Hard': GruvboxDarkHard,
-  'Gruvbox Dark Medium': GruvboxDarkMedium,
-  'Gruvbox Dark Soft': GruvboxDarkSoft,
-  'Gruvbox Light Hard': GruvboxLightHard,
-  'Gruvbox Light Medium': GruvboxLightMedium,
-  'Gruvbox Light Soft': GruvboxLightSoft,
-  Houston: Houston,
-  'Kanagawa Dragon': KanagawaDragon,
-  'Kanagawa Lotus': KanagawaLotus,
-  'Kanagawa Wave': KanagawaWave,
-  LaserWave: LaserWave,
-  'Light Plus': LightPlus,
-  'Material Theme': MaterialTheme,
-  'Material Theme Darker': MaterialThemeDarker,
-  'Material Theme Lighter': MaterialThemeLighter,
-  'Material Theme Ocean': MaterialThemeOcean,
-  'Material Theme Palenight': MaterialThemePalenight,
-  'Min Dark': MinDark,
-  'Min Light': MinLight,
-  Monokai: Monokai,
-  'Night Owl': NightOwl,
-  Nord: Nord,
-  'One Dark Pro': OneDarkPro,
-  'One Light': OneLight,
-  Plastic: Plastic,
-  Poimandres: Poimandres,
-  Red: Red,
-  'Rosé Pine': RosePine,
-  'Rosé Pine Dawn': RosePineDawn,
-  'Rosé Pine Moon': RosePineMoon,
-  'Slack Dark': SlackDark,
-  'Slack Ochin': SlackOchin,
-  'Snazzy Light': SnazzyLight,
-  'Solarized Dark': SolarizedDark,
-  'Solarized Light': SolarizedLight,
-  "Synthwave '84": Synthwave84,
-  'Tokyo Night': TokyoNight,
-  Vesper: Vesper,
-  'Vitesse Black': VitesseBlack,
-  'Vitesse Dark': VitesseDark,
-  'Vitesse Light': VitesseLight,
-};
 
 const isSupportBigInt = typeof BigInt !== 'undefined' && !(window as any).__conanyu_data_viewer_no_bigint;
 
@@ -508,7 +391,7 @@ function UpdateValueDialogContent({
   defaultKey,
   defaultValue,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+}: ComponentProps<typeof DialogPrimitive.Content> & {
   isArray: boolean;
   onSubmitValue: (k: string, v: unknown) => void;
   config?: DataViewerConfig;
@@ -522,7 +405,7 @@ function UpdateValueDialogContent({
   useEffect(() => setValue(defaultValue || '"输入数据"'), [defaultValue]);
   return (
     <DialogContent
-      className="w-full !max-w-[60vw]"
+      className="w-full max-w-[60vw]!"
       onOpenAutoFocus={e => e.preventDefault()}
       showCloseButton={false}
       aria-describedby={undefined}
@@ -589,15 +472,11 @@ function UpdateValueDialogContent({
 
 function InnerViewer(props: InnerViewerProps) {
   const { node, config, themeInfo, mode, onValueChange, onMove, pointer } = props;
-  const { forceDefaultCollapseLengthGte, openMove } = config || {};
-  const [collapsed, setCollapsed] = useState(node.length > (forceDefaultCollapseLengthGte || 100));
+  const { openMove } = config || {};
+  const [collapsed, setCollapsed] = useState(false);
   const [keyHover, setKeyHover] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
-
-  useEffect(() => {
-    setCollapsed(node.length > (forceDefaultCollapseLengthGte || 100));
-  }, [node.length, config?.forceDefaultCollapseLengthGte]);
 
   const interaction = useMemo(() => {
     const props = { data: node.data, depth: node.depth, config, onDataChange: onValueChange, pointer };
@@ -660,7 +539,7 @@ function InnerViewer(props: InnerViewerProps) {
               showCloseButton={false}
               autoFocus={false}
               onOpenAutoFocus={e => e.preventDefault()}
-              className="w-full !max-w-[80vw]"
+              className="w-full max-w-[80vw]!"
               aria-describedby={undefined}
             >
               <VisuallyHidden asChild>
@@ -860,6 +739,777 @@ function InnerViewer(props: InnerViewerProps) {
         ))}
       </div>
     </div>
+  );
+}
+
+function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
+  const { node, config, themeInfo, mode, onValueChange } = props;
+  const bgColor = themeInfo?.bg || themeInfo?.colors?.['editor.background'];
+  const fgColor = themeInfo?.fg || themeInfo?.colors?.['editor.foreground'];
+  // Canvas 模式需要支持任意层级折叠，这里用 pointer 作为 key 维护折叠状态。
+  const [collapsedSet, setCollapsedSet] = useState<Set<string>>(() => new Set());
+
+  type CanvasHitType =
+    | 'toggle-triangle'
+    | 'toggle-key'
+    | 'toggle-collapsed-count'
+    | 'interaction'
+    | 'edit-add'
+    | 'edit-delete'
+    | 'edit-update'
+    | 'edit-move-up'
+    | 'edit-move-down';
+
+  type CanvasHitRegion = {
+    type: CanvasHitType;
+    pointer: string;
+    node: ViewerNode;
+    rect: { x: number; y: number; w: number; h: number };
+  };
+
+  type CanvasRow =
+    | { kind: 'before'; node: ViewerNode; pointer: string; depth: number; collapsed: boolean }
+    | { kind: 'after'; node: ViewerNode; pointer: string; depth: number };
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const hitRegionsRef = useRef<CanvasHitRegion[]>([]);
+  const rafRef = useRef<number | null>(null);
+  const hoverRef = useRef<Pick<CanvasHitRegion, 'type' | 'pointer'> | null>(null);
+  const scheduleDrawRef = useRef<() => void>(() => {});
+
+  const [viewport, setViewport] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+
+  const [interactionDialog, setInteractionDialog] = useState<{
+    open: boolean;
+    content: ReactNode | null;
+  }>({ open: false, content: null });
+
+  const [updateDialog, setUpdateDialog] = useState<{
+    open: boolean;
+    pointer: string;
+    node: ViewerNode | null;
+  }>({ open: false, pointer: '', node: null });
+
+  const [addDialog, setAddDialog] = useState<{
+    open: boolean;
+    pointer: string;
+    node: ViewerNode | null;
+  }>({ open: false, pointer: '', node: null });
+
+  const normalizeCssColor = (c?: string, opacity?: number) => {
+    if (!c) return undefined;
+    const s = c.trim();
+    if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) return s.slice(1, -1);
+    return s + (opacity !== undefined ? `${opacity.toString(16).toUpperCase()}` : '');
+  };
+
+  const pointerToSegments = (p: string): string[] => {
+    if (!p) return [];
+    const s = p.startsWith('/') ? p.slice(1) : p;
+    if (!s) return [];
+    return s.split('/').map(seg => seg.replaceAll('~1', '/').replaceAll('~0', '~'));
+  };
+
+  const relativeSegmentsFromBase = (fullPointer: string): string[] | null => {
+    const base = props.pointer || '';
+    const baseSeg = pointerToSegments(base);
+    const fullSeg = pointerToSegments(fullPointer);
+    for (let i = 0; i < baseSeg.length; i++) {
+      if (baseSeg[i] !== fullSeg[i]) return null;
+    }
+    return fullSeg.slice(baseSeg.length);
+  };
+
+  const updateValueAtPath = (root: unknown, segs: string[], updater: (cur: unknown) => unknown): unknown => {
+    if (segs.length === 0) return updater(root);
+    const [head, ...rest] = segs;
+    if (Array.isArray(root)) {
+      const idx = Number(head);
+      if (!Number.isFinite(idx) || idx < 0 || idx >= root.length) return root;
+      const nextChild = updateValueAtPath(root[idx], rest, updater);
+      if (nextChild === root[idx]) return root;
+      const copy = root.slice();
+      copy[idx] = nextChild;
+      return copy;
+    }
+    if (root !== null && typeof root === 'object') {
+      const obj = root as Record<string, unknown>;
+      const nextChild = updateValueAtPath(obj[head], rest, updater);
+      if (nextChild === obj[head]) return root;
+      // Preserve insertion order for existing keys (InnerViewer keeps the original order when updating values).
+      if (!Object.prototype.hasOwnProperty.call(obj, head)) {
+        return { ...obj, [head]: nextChild };
+      }
+      const entries = Object.entries(obj).map(([k, v]) => (k === head ? [k, nextChild] : [k, v]));
+      return Object.fromEntries(entries);
+    }
+    return root;
+  };
+
+  const applyUpdateValue = (fullPointer: string, value: unknown) => {
+    const rel = relativeSegmentsFromBase(fullPointer);
+    if (!rel) return;
+    const nextRoot = updateValueAtPath(node.data, rel, () => value);
+    onValueChange(nextRoot);
+  };
+
+  const applyDelete = (fullPointer: string) => {
+    const rel = relativeSegmentsFromBase(fullPointer);
+    if (!rel || rel.length === 0) return; // root can't be removed (matches InnerViewer)
+    const parentSegs = rel.slice(0, -1);
+    const last = rel[rel.length - 1];
+    const nextRoot = updateValueAtPath(node.data, parentSegs, parent => {
+      if (Array.isArray(parent)) {
+        const idx = Number(last);
+        if (!Number.isFinite(idx) || idx < 0 || idx >= parent.length) return parent;
+        return parent.filter((_, i) => i !== idx);
+      }
+      if (parent !== null && typeof parent === 'object') {
+        const obj = parent as Record<string, unknown>;
+        const entries = Object.entries(obj).filter(([k]) => k !== last);
+        return Object.fromEntries(entries);
+      }
+      return parent;
+    });
+    onValueChange(nextRoot);
+  };
+
+  const applyAdd = (fullPointer: string, key: string, value: unknown) => {
+    const rel = relativeSegmentsFromBase(fullPointer);
+    if (!rel) return;
+    const nextRoot = updateValueAtPath(node.data, rel, container => {
+      if (Array.isArray(container)) return [...container, value];
+      if (container !== null && typeof container === 'object') {
+        const obj = container as Record<string, unknown>;
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          const entries = Object.entries(obj).map(([k, v]) => (k === key ? [k, value] : [k, v]));
+          return Object.fromEntries(entries);
+        }
+        return { ...obj, [key]: value };
+      }
+      return container;
+    });
+    onValueChange(nextRoot);
+  };
+
+  const applyMove = (fullPointer: string, n: ViewerNode, dir: 'up' | 'down') => {
+    const rel = relativeSegmentsFromBase(fullPointer);
+    if (!rel || rel.length === 0) return;
+    const parentSegs = rel.slice(0, -1);
+    const last = rel[rel.length - 1];
+    const idxHint = n.collapsedIndex;
+    const nextRoot = updateValueAtPath(node.data, parentSegs, parent => {
+      if (Array.isArray(parent)) {
+        const idx = Number(last);
+        const other = dir === 'up' ? idx - 1 : idx + 1;
+        if (!Number.isFinite(idx) || idx < 0 || idx >= parent.length) return parent;
+        if (other < 0 || other >= parent.length) return parent;
+        const copy = parent.slice();
+        const tmp = copy[idx];
+        copy[idx] = copy[other];
+        copy[other] = tmp;
+        return copy;
+      }
+      if (parent !== null && typeof parent === 'object') {
+        const entries = Object.entries(parent as Record<string, unknown>);
+        const idx = typeof idxHint === 'number' ? idxHint : entries.findIndex(([k]) => k === last);
+        if (idx < 0) return parent;
+        const other = dir === 'up' ? idx - 1 : idx + 1;
+        if (idx < 0 || idx >= entries.length) return parent;
+        if (other < 0 || other >= entries.length) return parent;
+        const copy = entries.slice();
+        const tmp = copy[idx];
+        copy[idx] = copy[other];
+        copy[other] = tmp;
+        return Object.fromEntries(copy);
+      }
+      return parent;
+    });
+    onValueChange(nextRoot);
+  };
+
+  const getInteraction = (n: ViewerNode, pointer: string) => {
+    const iProps = { data: n.data, depth: n.depth, config, onDataChange: onValueChange, pointer };
+    const custom = config?.additionalInteraction?.(iProps);
+    if (custom?.highPriority) return custom;
+    return defaultInteraction(iProps) || custom;
+  };
+
+  const { rows, guides, contentHeight, contentWidth } = useMemo(() => {
+    const fontSize = 14;
+    const lineHeight = 20;
+    const topPadding = 16;
+    const bottomPadding = 16;
+    const indentPx = 32;
+    const textOffsetX = 32;
+
+    const measureCanvas = document.createElement('canvas');
+    const mctx = measureCanvas.getContext('2d');
+    if (!mctx) {
+      return {
+        rows: [] as CanvasRow[],
+        guides: [] as { x: number; start: number; end: number; color?: string }[],
+        contentHeight: 0,
+        contentWidth: 0,
+      };
+    }
+    mctx.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace`;
+
+    const nextRows: CanvasRow[] = [];
+    const nextGuides: { x: number; start: number; end: number; color?: string }[] = [];
+    let maxW = 0;
+
+    const measureContentWidth = (contents: ViewerContent[]) => {
+      let w = 0;
+      for (const c of contents) {
+        if (c.type === ViewerContentTypeInteraction) {
+          // Reserve a little width for icons.
+          w += 72;
+        } else {
+          w += mctx.measureText(c.content).width;
+        }
+      }
+      return w;
+    };
+
+    const walk = (n: ViewerNode, pointer: string, depth: number) => {
+      const rowCollapsed = collapsedSet.has(pointer);
+      nextRows.push({ kind: 'before', node: n, pointer, depth, collapsed: rowCollapsed });
+
+      // Approx width: before + (collapsed count?) + (after inline?) + indent
+      const baseX = textOffsetX + depth * indentPx;
+      const beforeW = measureContentWidth(n.before);
+      const countW =
+        rowCollapsed && n.length > 0 ? mctx.measureText(`${n.length} item${n.length > 1 ? 's' : ''}`).width + 24 : 0;
+      const afterInlineW = rowCollapsed || n.children.length === 0 ? measureContentWidth(n.after) : 0;
+      maxW = Math.max(maxW, baseX + beforeW + countW + afterInlineW + 32);
+
+      if (!rowCollapsed && n.children.length > 0) {
+        const childStart = nextRows.length;
+        n.children.forEach((child, index) => {
+          const childPointer =
+            pointer +
+            (child.key ? `/${child.key.replaceAll('~', '~0').replaceAll('/', '~1')}` : `/${index.toString()}`);
+          walk(child, childPointer, depth + 1);
+        });
+        const childEnd = nextRows.length - 1;
+        if (childEnd >= childStart) {
+          nextGuides.push({
+            x: textOffsetX + depth * indentPx,
+            start: childStart,
+            end: childEnd,
+            color: normalizeCssColor(themeInfo.colors?.['editor.foreground']),
+          });
+        }
+        nextRows.push({ kind: 'after', node: n, pointer, depth });
+
+        const afterW = measureContentWidth(n.after);
+        maxW = Math.max(maxW, baseX + afterW + 32);
+      }
+    };
+
+    walk(node, props.pointer, 0);
+    const h = topPadding + nextRows.length * lineHeight + bottomPadding;
+    return {
+      rows: nextRows,
+      guides: nextGuides,
+      contentHeight: h,
+      contentWidth: Math.max(1, maxW),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node, props.pointer, collapsedSet, themeInfo]);
+
+  const scheduleDraw = () => {
+    if (rafRef.current !== null) return;
+    rafRef.current = window.requestAnimationFrame(() => {
+      rafRef.current = null;
+      const canvas = canvasRef.current;
+      const scroller = scrollRef.current;
+      if (!canvas || !scroller) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      const vw = Math.max(1, scroller.clientWidth);
+      const vh = Math.max(1, scroller.clientHeight);
+      if (canvas.width !== Math.floor(vw * dpr) || canvas.height !== Math.floor(vh * dpr)) {
+        canvas.width = Math.floor(vw * dpr);
+        canvas.height = Math.floor(vh * dpr);
+        canvas.style.width = `${vw}px`;
+        canvas.style.height = `${vh}px`;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const fontSize = 14;
+      const lineHeight = 20;
+      const topPadding = 16;
+      const indentPx = 32;
+      const triangleOffsetX = 16;
+      const textOffsetX = 32;
+      const iconSize = 12;
+      const iconGap = 4;
+
+      ctx.clearRect(0, 0, vw, vh);
+      ctx.fillStyle = normalizeCssColor(bgColor) || '#ffffff';
+      ctx.fillRect(0, 0, vw, vh);
+
+      ctx.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
+      ctx.textBaseline = 'alphabetic';
+      const metrics = ctx.measureText('M');
+      const ascent = metrics.actualBoundingBoxAscent || Math.round(fontSize * 0.8);
+      const baseLineOffsetY = Math.round((lineHeight - fontSize) / 2) + ascent;
+
+      const scrollTop = scroller.scrollTop;
+      const scrollLeft = scroller.scrollLeft;
+
+      // Draw guide lines (border-l dotted)
+      ctx.save();
+      ctx.strokeStyle =
+        normalizeCssColor(themeInfo.colors?.['editor.foreground']) || normalizeCssColor(fgColor) || '#666';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([1, 3]);
+      for (const g of guides) {
+        const y1 = topPadding + g.start * lineHeight - scrollTop;
+        const y2 = topPadding + (g.end + 1) * lineHeight - scrollTop;
+        if (y2 < 0 || y1 > vh) continue;
+        const x = g.x - scrollLeft;
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, Math.max(0, y1));
+        ctx.lineTo(x + 0.5, Math.min(vh, y2));
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      const startRow = Math.max(0, Math.floor((scrollTop - topPadding) / lineHeight) - 2);
+      const endRow = Math.min(rows.length, Math.ceil((scrollTop - topPadding + vh) / lineHeight) + 2);
+
+      const nextHitRegions: CanvasHitRegion[] = [];
+
+      const hovered = hoverRef.current;
+      const isHovered = (type: CanvasHitType, pointer: string) => hovered?.type === type && hovered.pointer === pointer;
+
+      const drawIcon = (x: number, y: number, kind: CanvasHitType, pointer: string) => {
+        const cx = x + iconSize / 2;
+        const cy = y + lineHeight / 2 - 2;
+        const stroke = normalizeCssColor(themeInfo.colors?.['button.background'], 178) || '#999';
+        const hoverStroke =
+          normalizeCssColor(themeInfo.colors?.['button.hoverBackground']) ||
+          normalizeCssColor(themeInfo.colors?.['button.background']) ||
+          '#bbb';
+        const color = isHovered(kind, pointer) ? hoverStroke : stroke;
+
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 1.2;
+
+        if (kind === 'interaction') {
+          ctx.beginPath();
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.lineWidth = 1;
+          const s = 2.5;
+          if (kind === 'edit-add') {
+            ctx.beginPath();
+            ctx.moveTo(cx - s, cy);
+            ctx.lineTo(cx + s, cy);
+            ctx.moveTo(cx, cy - s);
+            ctx.lineTo(cx, cy + s);
+            ctx.stroke();
+          } else if (kind === 'edit-delete') {
+            ctx.beginPath();
+            ctx.moveTo(cx - s, cy);
+            ctx.lineTo(cx + s, cy);
+            ctx.stroke();
+          } else if (kind === 'edit-update') {
+            // up arrow
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + s);
+            ctx.lineTo(cx, cy - s);
+            ctx.lineTo(cx - s, cy - s + 2);
+            ctx.moveTo(cx, cy - s);
+            ctx.lineTo(cx + s, cy - s + 2);
+            ctx.stroke();
+          } else if (kind === 'edit-move-up') {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + s);
+            ctx.lineTo(cx, cy - s);
+            ctx.lineTo(cx - s, cy - s + 2);
+            ctx.moveTo(cx, cy - s);
+            ctx.lineTo(cx + s, cy - s + 2);
+            ctx.stroke();
+          } else if (kind === 'edit-move-down') {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - s);
+            ctx.lineTo(cx, cy + s);
+            ctx.lineTo(cx - s, cy + s - 2);
+            ctx.moveTo(cx, cy + s);
+            ctx.lineTo(cx + s, cy + s - 2);
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      };
+
+      const drawContents = (
+        x0: number,
+        y0: number,
+        contents: ViewerContent[],
+        pointer: string,
+        n: ViewerNode,
+        allowCollapse: boolean,
+      ) => {
+        let x = x0;
+        const canCollapse = allowCollapse && n.length > 0;
+        let keyStart: number | null = null;
+        let keyEnd: number | null = null;
+
+        const maybePushKeyRegion = (rowY: number) => {
+          if (keyStart !== null && keyEnd !== null && canCollapse) {
+            nextHitRegions.push({
+              type: 'toggle-key',
+              pointer,
+              node: n,
+              rect: { x: keyStart, y: rowY, w: keyEnd - keyStart, h: lineHeight },
+            });
+          }
+        };
+
+        for (const item of contents) {
+          if (item.type === ViewerContentTypeInteraction) {
+            // Draw interaction icons at the insertion point.
+            if (mode === 'normal') {
+              const interaction = getInteraction(n, pointer);
+              if (interaction) {
+                const iconX = x;
+                drawIcon(iconX - scrollLeft, y0, 'interaction', pointer);
+                nextHitRegions.push({
+                  type: 'interaction',
+                  pointer,
+                  node: n,
+                  rect: { x: iconX - scrollLeft, y: y0, w: iconSize, h: lineHeight },
+                });
+                x += iconSize + iconGap;
+              }
+            } else if (mode === 'edit' && !config?.uneditable) {
+              const icons: CanvasHitType[] = [];
+              const openMove = config?.openMove;
+              const isObj = n.data !== null && typeof n.data === 'object';
+              if (n.depth === 0) {
+                if (isObj) icons.push('edit-add');
+                icons.push('edit-update');
+              } else {
+                if (isObj) icons.push('edit-add');
+                icons.push('edit-delete', 'edit-update');
+                if (openMove && n.collapsedIndex !== 0) icons.push('edit-move-up');
+                if (openMove && n.collapsedIndex !== undefined && n.collapsedIndex + 1 !== n.collapsedLength)
+                  icons.push('edit-move-down');
+              }
+              for (const kind of icons) {
+                const iconX = x;
+                drawIcon(iconX - scrollLeft, y0, kind, pointer);
+                nextHitRegions.push({
+                  type: kind,
+                  pointer,
+                  node: n,
+                  rect: { x: iconX - scrollLeft, y: y0, w: iconSize, h: lineHeight },
+                });
+                x += iconSize + iconGap;
+              }
+            }
+            continue;
+          }
+
+          const text = item.content;
+          const w = ctx.measureText(text).width;
+          const bg = normalizeCssColor(item.bgColor);
+          if (bg) {
+            ctx.fillStyle = bg;
+            ctx.fillRect(x - scrollLeft, y0, w, lineHeight);
+          }
+          ctx.fillStyle = normalizeCssColor(item.color) || normalizeCssColor(fgColor) || '#111';
+          ctx.fillText(text, x - scrollLeft, y0 + baseLineOffsetY);
+
+          if (item.type === ViewerContentTypeKey) {
+            if (keyStart === null) keyStart = x - scrollLeft;
+            keyEnd = x - scrollLeft + w;
+          } else {
+            maybePushKeyRegion(y0);
+            keyStart = null;
+            keyEnd = null;
+          }
+          x += w;
+        }
+
+        maybePushKeyRegion(y0);
+        return x;
+      };
+
+      for (let i = startRow; i < endRow; i++) {
+        const row = rows[i];
+        const y = topPadding + i * lineHeight - scrollTop;
+        if (y + lineHeight < 0 || y > vh) continue;
+
+        if (row.kind === 'before') {
+          const n = row.node;
+          const pointer = row.pointer;
+
+          // triangle toggle
+          if (n.length > 0) {
+            const tx = triangleOffsetX + row.depth * indentPx - scrollLeft;
+            const ty = y;
+            const hoverColor =
+              normalizeCssColor(themeInfo.colors?.['button.hoverBackground']) ||
+              normalizeCssColor(themeInfo.colors?.['button.background']) ||
+              '#bbb';
+            const baseColor = normalizeCssColor(themeInfo.colors?.['button.background'], 178) || '#999';
+            ctx.fillStyle = isHovered('toggle-triangle', pointer) ? hoverColor : baseColor;
+            ctx.save();
+            ctx.font = `${fontSize + 2}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
+            ctx.fillText(row.collapsed ? '▶' : '▼', tx, y + baseLineOffsetY - 1);
+            ctx.restore();
+            nextHitRegions.push({
+              type: 'toggle-triangle',
+              pointer,
+              node: n,
+              rect: { x: tx, y: ty, w: 18, h: lineHeight },
+            });
+          }
+
+          const x0 = textOffsetX + row.depth * indentPx;
+          let x = drawContents(x0, y, n.before, pointer, n, true);
+
+          if (row.collapsed) {
+            const countText = `${n.length} item${n.length > 1 ? 's' : ''}`;
+            const cw = ctx.measureText(countText).width;
+            const pad = 12;
+            const countX = x + pad;
+            const countColor =
+              normalizeCssColor(themeInfo.fg) ||
+              normalizeCssColor(themeInfo.colors?.['editor.foreground']) ||
+              normalizeCssColor(fgColor) ||
+              '#111';
+            ctx.fillStyle = countColor;
+            ctx.fillText(countText, countX - scrollLeft, y + baseLineOffsetY);
+            if (isHovered('toggle-collapsed-count', pointer)) {
+              ctx.beginPath();
+              ctx.strokeStyle = countColor;
+              ctx.moveTo(countX - scrollLeft, y + baseLineOffsetY + 2);
+              ctx.lineTo(countX - scrollLeft + cw, y + baseLineOffsetY + 2);
+              ctx.stroke();
+            }
+            nextHitRegions.push({
+              type: 'toggle-collapsed-count',
+              pointer,
+              node: n,
+              rect: { x: countX - scrollLeft, y, w: cw, h: lineHeight },
+            });
+            x = countX + cw + pad;
+          }
+
+          // Inline after when collapsed or leaf
+          if (row.collapsed || n.children.length === 0) {
+            drawContents(x, y, n.after, pointer, n, false);
+          }
+        } else {
+          const n = row.node;
+          const pointer = row.pointer;
+          const x0 = textOffsetX + row.depth * indentPx;
+          drawContents(x0, y, n.after, pointer, n, false);
+        }
+      }
+
+      hitRegionsRef.current = nextHitRegions;
+    });
+  };
+
+  // 避免 scroll/resize listener 捕获旧的 scheduleDraw（否则折叠状态会在滚动后“恢复”）。
+  scheduleDrawRef.current = scheduleDraw;
+
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    const onScroll = () => scheduleDrawRef.current();
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    const ro = new ResizeObserver(() => {
+      setViewport({ w: scroller.clientWidth, h: scroller.clientHeight });
+      scheduleDrawRef.current();
+    });
+    ro.observe(scroller);
+    setViewport({ w: scroller.clientWidth, h: scroller.clientHeight });
+    scheduleDrawRef.current();
+    return () => {
+      scroller.removeEventListener('scroll', onScroll);
+      ro.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    scheduleDraw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, guides, bgColor, fgColor, mode, config?.openMove, config?.uneditable]);
+
+  const findHit = (x: number, y: number) => {
+    const hits = hitRegionsRef.current;
+    for (let i = hits.length - 1; i >= 0; i--) {
+      const r = hits[i].rect;
+      if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return hits[i];
+    }
+    return null;
+  };
+
+  const onMouseMove: MouseEventHandler<HTMLCanvasElement> = e => {
+    const hit = findHit(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+    const nextHover = hit ? { type: hit.type, pointer: hit.pointer } : null;
+    const prev = hoverRef.current;
+    const changed = prev?.type !== nextHover?.type || prev?.pointer !== nextHover?.pointer;
+    if (changed) {
+      hoverRef.current = nextHover;
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.style.cursor = hit ? 'pointer' : 'default';
+      }
+      scheduleDraw();
+    }
+  };
+
+  const onMouseLeave: MouseEventHandler<HTMLCanvasElement> = () => {
+    if (hoverRef.current) {
+      hoverRef.current = null;
+      const canvas = canvasRef.current;
+      if (canvas) canvas.style.cursor = 'default';
+      scheduleDraw();
+    }
+  };
+
+  const onClick: MouseEventHandler<HTMLCanvasElement> = e => {
+    const hit = findHit(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+    if (!hit) return;
+    const pointer = hit.pointer;
+    const n = hit.node;
+    switch (hit.type) {
+      case 'toggle-triangle':
+      case 'toggle-key':
+      case 'toggle-collapsed-count':
+        // 任意层级折叠：pointer 唯一标识节点。
+        if (n.length > 0) {
+          setCollapsedSet(prev => {
+            const next = new Set(prev);
+            if (hit.type === 'toggle-collapsed-count') {
+              next.delete(pointer);
+            } else {
+              next.has(pointer) ? next.delete(pointer) : next.add(pointer);
+            }
+            return next;
+          });
+        }
+        break;
+      case 'interaction': {
+        const interaction = getInteraction(n, pointer);
+        if (!interaction?.event) return;
+        if (typeof interaction.event === 'function') {
+          interaction.event(e.nativeEvent);
+        } else {
+          setInteractionDialog({ open: true, content: interaction.event });
+        }
+        break;
+      }
+      case 'edit-add':
+        setAddDialog({ open: true, pointer, node: n });
+        break;
+      case 'edit-update':
+        setUpdateDialog({ open: true, pointer, node: n });
+        break;
+      case 'edit-delete':
+        applyDelete(pointer);
+        break;
+      case 'edit-move-up':
+        applyMove(pointer, n, 'up');
+        break;
+      case 'edit-move-down':
+        applyMove(pointer, n, 'down');
+        break;
+    }
+  };
+
+  // The canvas renderer virtualizes all text; dialogs are still regular React UI.
+  return (
+    <>
+      <div
+        ref={scrollRef}
+        className={cn(
+          props.className,
+          // Keep these in sync with InnerViewer's PreWrapper, but padding is handled in canvas drawing.
+          'scrollbar-thin text-sm font-mono font-normal antialiased',
+        )}
+        style={{ backgroundColor: bgColor, color: fgColor }}
+      >
+        <canvas
+          ref={canvasRef}
+          className="sticky top-0 left-0 block w-full"
+          style={{ backgroundColor: bgColor }}
+          onMouseMove={onMouseMove}
+          onMouseLeave={onMouseLeave}
+          onClick={onClick}
+        />
+        <div style={{ height: Math.max(0, contentHeight - viewport.h), width: contentWidth }} />
+      </div>
+
+      <Dialog open={interactionDialog.open} onOpenChange={open => setInteractionDialog(s => ({ ...s, open }))}>
+        {interactionDialog.content ? (
+          <DialogContent
+            showCloseButton={false}
+            autoFocus={false}
+            onOpenAutoFocus={e => e.preventDefault()}
+            className="w-full max-w-[80vw]!"
+            aria-describedby={undefined}
+          >
+            <VisuallyHidden asChild>
+              <DialogTitle />
+            </VisuallyHidden>
+            {interactionDialog.content}
+          </DialogContent>
+        ) : null}
+      </Dialog>
+
+      <Dialog open={updateDialog.open} onOpenChange={open => setUpdateDialog(s => ({ ...s, open }))}>
+        {updateDialog.node ? (
+          <UpdateValueDialogContent
+            isArray={!updateDialog.node.key}
+            config={config}
+            defaultKey={updateDialog.node.key}
+            defaultValue={JSONHandler.stringify(updateDialog.node.data, null, 2)}
+            onSubmitValue={(_, v) => {
+              applyUpdateValue(updateDialog.pointer, v);
+              setUpdateDialog(s => ({ ...s, open: false }));
+            }}
+          />
+        ) : null}
+      </Dialog>
+
+      <Dialog open={addDialog.open} onOpenChange={open => setAddDialog(s => ({ ...s, open }))}>
+        {addDialog.node ? (
+          <UpdateValueDialogContent
+            isArray={Array.isArray(addDialog.node.data)}
+            config={config}
+            onSubmitValue={(k, v) => {
+              if (Array.isArray(addDialog.node!.data)) {
+                applyAdd(addDialog.pointer, '', v);
+              } else {
+                applyAdd(addDialog.pointer, k, v);
+              }
+              setAddDialog(s => ({ ...s, open: false }));
+            }}
+          />
+        ) : null}
+      </Dialog>
+    </>
   );
 }
 
@@ -1077,7 +1727,7 @@ function JsonPathDialogContent({
       showCloseButton={false}
       autoFocus={false}
       onOpenAutoFocus={e => e.preventDefault()}
-      className="w-full !max-w-[80vw] max-h-[80vh]"
+      className="w-full max-w-[80vw]! max-h-[80vh]"
       aria-describedby={undefined}
     >
       <VisuallyHidden asChild>
@@ -1149,14 +1799,13 @@ interface DataViewerConfig {
   withoutButtonGroup?: boolean; // 是否不展示操作按钮组
   withToaster?: boolean; // 是否需要toaster
   withoutMaximize?: boolean; // 是否不展示最大化按钮
-  withThemeChange?: boolean; // 是否开启主题切换
-  forceDefaultCollapseLengthGte?: number; // 强制默认折叠长度 不填则为100
   showInteractionWithStringLengthGte?: number; // 展示交互的字符串长度阈值 不填则为100
   additionalInteraction?: Interaction; // 自定义交互逻辑
   uneditable?: boolean; // 是否可编辑
   openMove?: boolean; // 默认是否开启移动操作
   disableLocalStorage?: boolean; // 是否禁用localStorage
   useShikiJavascriptEngine?: boolean; // 使用shiki javascript引擎
+  useCanvas?: boolean;
 }
 
 interface DataViewerProps {
@@ -1176,7 +1825,6 @@ interface DataViewerIntlProps extends DataViewerProps {
   highlightPointer?: string[];
 }
 
-const localStorageThemeKey = 'conanyu-data-viewer.theme' as const;
 const localStorageOpenMoveKey = 'conanyu-data-viewer.open-move' as const;
 
 const globalHighlighter: Map<ThemeRegistration, HighlighterGeneric<string, string>> = new Map();
@@ -1189,24 +1837,13 @@ function DataViewerIntl(props: DataViewerIntlProps) {
     withoutButtonGroup,
     withoutMaximize,
     withToaster,
-    withThemeChange,
     uneditable,
     openMove: propOpenMove,
     disableLocalStorage,
     useShikiJavascriptEngine,
   } = props.config || {};
   const getThemeInfo = () => {
-    return (
-      propThemeInfo ??
-      (() => {
-        if (disableLocalStorage) {
-          return null;
-        }
-        const theme = localStorage.getItem(localStorageThemeKey);
-        return theme === null ? null : (JSON5.parse(theme) as ThemeRegistration);
-      })() ??
-      (OneLight as ThemeRegistration)
-    );
+    return propThemeInfo ?? (OneLight as ThemeRegistration);
   };
   const [themeInfo, setThemeInfo] = useState<ThemeRegistration>(getThemeInfo());
   useEffect(() => {
@@ -1287,10 +1924,9 @@ function DataViewerIntl(props: DataViewerIntlProps) {
     return [t.bg, t.fg, r];
   }, [data, highlighter, themeInfo, props.highlightPointer]);
 
-  return (
-    <>
-      {withToaster && <Toaster />}
-      <div className={cn('relative overflow-auto scrollbar-thin', props.className)}>
+  const Exhibition = () => {
+    const PreWrapper = ({ children }: { children?: ReactNode }) => {
+      return (
         <pre
           className={cn(
             withButtonGroup ? 'overflow-y-scroll' : 'overflow-auto',
@@ -1299,28 +1935,65 @@ function DataViewerIntl(props: DataViewerIntlProps) {
           )}
           style={{ backgroundColor: bgColor, color: fgColor }}
         >
-          {data.error ? (
-            <div className="px-4" style={{ color: themeInfo.colors?.['editorError.foreground'] }}>
-              {data.error}
-            </div>
-          ) : root !== undefined ? (
-            <InnerViewer
-              mode={mode}
-              themeInfo={themeInfo}
-              node={root}
-              config={{ ...props.config, openMove }}
-              onValueChange={value => {
-                setSource(JSONHandler.stringify(value));
-                props.onDataChange?.(value);
-              }}
-              pointer={props.pointer}
-            />
-          ) : (
-            <div className="px-4">
-              <LoaderCircle className="animate-spin" />
-            </div>
-          )}
+          {children}
         </pre>
+      );
+    };
+    if (data.error) {
+      return (
+        <PreWrapper>
+          <div className="px-4" style={{ color: themeInfo.colors?.['editorError.foreground'] }}>
+            {data.error}
+          </div>
+        </PreWrapper>
+      );
+    }
+    if (!root) {
+      return (
+        <PreWrapper>
+          <div className="px-4">
+            <LoaderCircle className="animate-spin" />
+          </div>
+        </PreWrapper>
+      );
+    }
+    const innerViewerProps: InnerViewerProps = {
+      mode,
+      themeInfo,
+      node: root,
+      config: { ...props.config, openMove },
+      onValueChange: value => {
+        setSource(JSONHandler.stringify(value));
+        props.onDataChange?.(value);
+      },
+      pointer: props.pointer,
+    };
+    if (props.config?.useCanvas) {
+      return (
+        <CanvasInnerViewer
+          {...innerViewerProps}
+          className={cn(
+            withButtonGroup ? 'overflow-y-scroll' : 'overflow-auto',
+            // Match InnerViewer's PreWrapper typography; padding is handled inside CanvasInnerViewer drawing.
+            'scrollbar-thin text-sm font-mono font-normal antialiased',
+            props.preClassName,
+          )}
+        />
+      );
+    } else {
+      return (
+        <PreWrapper>
+          <InnerViewer {...innerViewerProps} />
+        </PreWrapper>
+      );
+    }
+  };
+
+  return (
+    <>
+      {withToaster && <Toaster />}
+      <div className={cn('relative overflow-auto scrollbar-thin', props.className)}>
+        <Exhibition />
         {withButtonGroup && !data.error && data.data !== undefined && (
           <div className="absolute right-4 top-2">
             <ButtonGroup>
@@ -1342,7 +2015,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                     showCloseButton={false}
                     autoFocus={false}
                     onOpenAutoFocus={e => e.preventDefault()}
-                    className="w-full !max-w-[80vw]"
+                    className="w-full max-w-[80vw]!"
                     aria-describedby={undefined}
                   >
                     <DataViewerIntl
@@ -1365,50 +2038,6 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                   icon={mode === 'normal' ? <Sparkle /> : <SquarePen />}
                   onClick={() => setMode(mode === 'normal' ? 'edit' : 'normal')}
                 />
-              )}
-              {withThemeChange && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    className={buttonVariants({
-                      variant: 'outline',
-                      size: 'icon',
-                      className: 'cursor-pointer bg-white text-gray-600',
-                    })}
-                  >
-                    <Tooltip>
-                      <TooltipTrigger
-                        className={buttonVariants({
-                          variant: 'outline',
-                          size: 'icon',
-                          className: 'cursor-pointer rounded-none border-x-0 border-y',
-                        })}
-                        style={{ boxShadow: '0 0' }}
-                      >
-                        <Palette />
-                      </TooltipTrigger>
-                      <TooltipContent>切换主题</TooltipContent>
-                    </Tooltip>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="scrollbar-thin">
-                    <DropdownMenuGroup>
-                      {Object.entries(themes).map(([key, value]) => (
-                        <DropdownMenuItem
-                          key={key}
-                          className="cursor-pointer"
-                          onClick={() => {
-                            setThemeInfo(value as ThemeRegistration);
-                            props.onThemeInfoChange?.(value as ThemeRegistration);
-                            if (!disableLocalStorage) {
-                              localStorage.setItem(localStorageThemeKey, JSON5.stringify(value));
-                            }
-                          }}
-                        >
-                          {key}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger
