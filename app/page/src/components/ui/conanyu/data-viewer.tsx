@@ -7,7 +7,15 @@ import JSON5Normal from 'json5';
 import JSON5BigInt from 'json5-bigint';
 import YAML from 'yaml';
 import { ButtonGroup } from '@/components/ui/button-group.tsx';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ComponentProps,
+  type MouseEventHandler,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import { cn } from '@/lib/utils.ts';
 import { buttonVariants } from '@/components/ui/button.tsx';
@@ -385,7 +393,7 @@ function UpdateValueDialogContent({
   defaultKey,
   defaultValue,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+}: ComponentProps<typeof DialogPrimitive.Content> & {
   isArray: boolean;
   onSubmitValue: (k: string, v: unknown) => void;
   config?: DataViewerConfig;
@@ -399,7 +407,7 @@ function UpdateValueDialogContent({
   useEffect(() => setValue(defaultValue || '"输入数据"'), [defaultValue]);
   return (
     <DialogContent
-      className="w-full !max-w-[60vw]"
+      className="w-full max-w-[60vw]!"
       onOpenAutoFocus={e => e.preventDefault()}
       showCloseButton={false}
       aria-describedby={undefined}
@@ -740,8 +748,10 @@ function InnerViewer(props: InnerViewerProps) {
   );
 }
 
-function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor: string; className?: string }) {
+function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
   const { node, config, themeInfo, mode, onValueChange } = props;
+  const bgColor = themeInfo?.bg || themeInfo?.colors?.['editor.background'];
+  const fgColor = themeInfo?.fg || themeInfo?.colors?.['editor.foreground'];
 
   type CanvasHitType =
     | 'toggle-triangle'
@@ -792,11 +802,11 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
     node: ViewerNode | null;
   }>({ open: false, pointer: '', node: null });
 
-  const normalizeCssColor = (c?: string) => {
+  const normalizeCssColor = (c?: string, opacity?: number) => {
     if (!c) return undefined;
     const s = c.trim();
     if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) return s.slice(1, -1);
-    return s;
+    return s + (opacity !== undefined ? `${opacity.toString(16).toUpperCase()}` : '');
   };
 
   const pointerToSegments = (p: string): string[] => {
@@ -1061,10 +1071,10 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
       const iconGap = 4;
 
       ctx.clearRect(0, 0, vw, vh);
-      ctx.fillStyle = normalizeCssColor(props.bgColor) || '#ffffff';
+      ctx.fillStyle = normalizeCssColor(bgColor) || '#ffffff';
       ctx.fillRect(0, 0, vw, vh);
 
-      ctx.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace`;
+      ctx.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
       ctx.textBaseline = 'alphabetic';
       const metrics = ctx.measureText('M');
       const ascent = metrics.actualBoundingBoxAscent || Math.round(fontSize * 0.8);
@@ -1076,7 +1086,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
       // Draw guide lines (border-l dotted)
       ctx.save();
       ctx.strokeStyle =
-        normalizeCssColor(themeInfo.colors?.['editor.foreground']) || normalizeCssColor(props.fgColor) || '#666';
+        normalizeCssColor(themeInfo.colors?.['editor.foreground']) || normalizeCssColor(fgColor) || '#666';
       ctx.lineWidth = 1;
       ctx.setLineDash([1, 3]);
       for (const g of guides) {
@@ -1102,7 +1112,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
       const drawIcon = (x: number, y: number, kind: CanvasHitType, pointer: string) => {
         const cx = x + iconSize / 2;
         const cy = y + lineHeight / 2;
-        const stroke = normalizeCssColor(themeInfo.colors?.['button.background']) || '#999';
+        const stroke = normalizeCssColor(themeInfo.colors?.['button.background'], 178) || '#999';
         const hoverStroke =
           normalizeCssColor(themeInfo.colors?.['button.hoverBackground']) ||
           normalizeCssColor(themeInfo.colors?.['button.background']) ||
@@ -1116,7 +1126,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
 
         if (kind === 'interaction') {
           ctx.beginPath();
-          ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+          ctx.arc(cx, cy - 2, 5, 0, Math.PI * 2);
           ctx.fill();
         } else {
           ctx.beginPath();
@@ -1235,7 +1245,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
             ctx.fillStyle = bg;
             ctx.fillRect(x - scrollLeft, y0, w, lineHeight);
           }
-          ctx.fillStyle = normalizeCssColor(item.color) || normalizeCssColor(props.fgColor) || '#111';
+          ctx.fillStyle = normalizeCssColor(item.color) || normalizeCssColor(fgColor) || '#111';
           ctx.fillText(text, x - scrollLeft, y0 + baseLineOffsetY);
 
           if (item.type === ViewerContentTypeKey) {
@@ -1270,9 +1280,9 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
               normalizeCssColor(themeInfo.colors?.['button.hoverBackground']) ||
               normalizeCssColor(themeInfo.colors?.['button.background']) ||
               '#bbb';
-            const baseColor = normalizeCssColor(themeInfo.colors?.['button.background']) || '#999';
+            const baseColor = normalizeCssColor(themeInfo.colors?.['button.background'], 178) || '#999';
             ctx.fillStyle = isHovered('toggle-triangle', pointer) ? hoverColor : baseColor;
-            ctx.fillText(row.collapsed ? '▶' : '▼', tx, y + baseLineOffsetY);
+            ctx.fillText(row.collapsed ? '▶' : '▼', tx, y + baseLineOffsetY - 2);
             nextHitRegions.push({
               type: 'toggle-triangle',
               pointer,
@@ -1292,7 +1302,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
             const countColor =
               normalizeCssColor(themeInfo.fg) ||
               normalizeCssColor(themeInfo.colors?.['editor.foreground']) ||
-              normalizeCssColor(props.fgColor) ||
+              normalizeCssColor(fgColor) ||
               '#111';
             ctx.fillStyle = countColor;
             ctx.fillText(countText, countX - scrollLeft, y + baseLineOffsetY);
@@ -1350,7 +1360,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
   useEffect(() => {
     scheduleDraw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, guides, props.bgColor, props.fgColor, mode, config?.openMove, config?.uneditable]);
+  }, [rows, guides, bgColor, fgColor, mode, config?.openMove, config?.uneditable]);
 
   const findHit = (x: number, y: number) => {
     const hits = hitRegionsRef.current;
@@ -1361,7 +1371,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
     return null;
   };
 
-  const onMouseMove: React.MouseEventHandler<HTMLCanvasElement> = e => {
+  const onMouseMove: MouseEventHandler<HTMLCanvasElement> = e => {
     const hit = findHit(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
     const nextHover = hit ? { type: hit.type, pointer: hit.pointer } : null;
     const prev = hoverRef.current;
@@ -1376,7 +1386,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
     }
   };
 
-  const onMouseLeave: React.MouseEventHandler<HTMLCanvasElement> = () => {
+  const onMouseLeave: MouseEventHandler<HTMLCanvasElement> = () => {
     if (hoverRef.current) {
       hoverRef.current = null;
       const canvas = canvasRef.current;
@@ -1385,7 +1395,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
     }
   };
 
-  const onClick: React.MouseEventHandler<HTMLCanvasElement> = e => {
+  const onClick: MouseEventHandler<HTMLCanvasElement> = e => {
     const hit = findHit(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
     if (!hit) return;
     const pointer = hit.pointer;
@@ -1434,12 +1444,12 @@ function CanvasInnerViewer(props: InnerViewerProps & { bgColor: string; fgColor:
           // Keep these in sync with InnerViewer's PreWrapper, but padding is handled in canvas drawing.
           'scrollbar-thin text-sm font-mono font-normal antialiased',
         )}
-        style={{ backgroundColor: props.bgColor, color: props.fgColor }}
+        style={{ backgroundColor: bgColor, color: fgColor }}
       >
         <canvas
           ref={canvasRef}
           className="sticky top-0 left-0 block w-full"
-          style={{ backgroundColor: props.bgColor }}
+          style={{ backgroundColor: bgColor }}
           onMouseMove={onMouseMove}
           onMouseLeave={onMouseLeave}
           onClick={onClick}
@@ -1912,7 +1922,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
   }, [data, highlighter, themeInfo, props.highlightPointer]);
 
   const Exhibition = () => {
-    const PreWrapper = ({ children }: { children?: React.ReactNode }) => {
+    const PreWrapper = ({ children }: { children?: ReactNode }) => {
       return (
         <pre
           className={cn(
@@ -1959,8 +1969,6 @@ function DataViewerIntl(props: DataViewerIntlProps) {
       return (
         <CanvasInnerViewer
           {...innerViewerProps}
-          bgColor={bgColor || ''}
-          fgColor={fgColor || ''}
           className={cn(
             withButtonGroup ? 'overflow-y-scroll' : 'overflow-auto',
             // Match InnerViewer's PreWrapper typography; padding is handled inside CanvasInnerViewer drawing.
