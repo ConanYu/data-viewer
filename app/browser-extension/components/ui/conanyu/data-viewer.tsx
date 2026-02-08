@@ -1806,6 +1806,7 @@ interface DataViewerConfig {
   disableLocalStorage?: boolean; // 是否禁用localStorage
   useShikiJavascriptEngine?: boolean; // 使用shiki javascript引擎
   useCanvas?: boolean;
+  forceCanvasThreshold?: number; // 强制使用 Canvas 的阈值（字节），默认 102400
 }
 
 interface DataViewerProps {
@@ -1854,6 +1855,19 @@ function DataViewerIntl(props: DataViewerIntlProps) {
   useEffect(() => {
     setSource(props.data);
   }, [props.data]);
+
+  const shouldForceCanvas = useMemo(() => {
+    const forceCanvasThreshold = props.config?.forceCanvasThreshold ?? 102400;
+    const sourceByteLength = (() => {
+      try {
+        return new TextEncoder().encode(source).length;
+      } catch {
+        return source.length;
+      }
+    })();
+    return sourceByteLength > forceCanvasThreshold;
+  }, [source, props.config?.forceCanvasThreshold]);
+
   const [mode, setMode] = useState<'normal' | 'edit'>('normal');
   const getOpenMove = () => {
     return (
@@ -1968,7 +1982,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
       },
       pointer: props.pointer,
     };
-    if (props.config?.useCanvas) {
+    if (props.config?.useCanvas || shouldForceCanvas) {
       return (
         <CanvasInnerViewer
           {...innerViewerProps}
