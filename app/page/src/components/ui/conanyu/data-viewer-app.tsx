@@ -60,7 +60,7 @@ export default function DataViewerApp() {
               config={{
                 themeInfo,
                 withToaster: true,
-                useCanvas: useCanvas,
+                useCanvas,
               }}
             />
           ) : (

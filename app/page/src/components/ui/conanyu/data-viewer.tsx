@@ -541,7 +541,7 @@ function InnerViewer(props: InnerViewerProps) {
               showCloseButton={false}
               autoFocus={false}
               onOpenAutoFocus={e => e.preventDefault()}
-              className="w-full !max-w-[80vw]"
+              className="w-full max-w-[80vw]!"
               aria-describedby={undefined}
             >
               <VisuallyHidden asChild>
@@ -1271,12 +1271,15 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
               '#bbb';
             const baseColor = normalizeCssColor(themeInfo.colors?.['button.background'], 178) || '#999';
             ctx.fillStyle = isHovered('toggle-triangle', pointer) ? hoverColor : baseColor;
-            ctx.fillText(row.collapsed ? '▶' : '▼', tx, y + baseLineOffsetY - 2);
+            ctx.save();
+            ctx.font = `${fontSize + 2}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`;
+            ctx.fillText(row.collapsed ? '▶' : '▼', tx, y + baseLineOffsetY - 1);
+            ctx.restore();
             nextHitRegions.push({
               type: 'toggle-triangle',
               pointer,
               node: n,
-              rect: { x: tx, y: ty, w: 16, h: lineHeight },
+              rect: { x: tx, y: ty, w: 18, h: lineHeight },
             });
           }
 
@@ -1466,7 +1469,7 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
             showCloseButton={false}
             autoFocus={false}
             onOpenAutoFocus={e => e.preventDefault()}
-            className="w-full !max-w-[80vw]"
+            className="w-full max-w-[80vw]!"
             aria-describedby={undefined}
           >
             <VisuallyHidden asChild>
@@ -1726,7 +1729,7 @@ function JsonPathDialogContent({
       showCloseButton={false}
       autoFocus={false}
       onOpenAutoFocus={e => e.preventDefault()}
-      className="w-full !max-w-[80vw] max-h-[80vh]"
+      className="w-full max-w-[80vw]! max-h-[80vh]"
       aria-describedby={undefined}
     >
       <VisuallyHidden asChild>
@@ -2014,7 +2017,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
                     showCloseButton={false}
                     autoFocus={false}
                     onOpenAutoFocus={e => e.preventDefault()}
-                    className="w-full !max-w-[80vw]"
+                    className="w-full max-w-[80vw]!"
                     aria-describedby={undefined}
                   >
                     <DataViewerIntl
