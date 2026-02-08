@@ -13,16 +13,19 @@ const localStorageContentKey = 'conanyu-data-viewer.content' as const;
 export default function DataViewerApp() {
   const [content, setContentState] = useState('');
   const alerted = useRef(false);
+  const [useCanvas, setUseCanvas] = useState(false);
   const setContent = (value: string) => {
     setContentState(value);
     const MAX_SIZE = 100 * 1024;
     if (value.length <= MAX_SIZE) {
       localStorage.setItem(localStorageContentKey, value);
+      setUseCanvas(false);
     } else {
       if (!alerted.current) {
         toast.warning(`数据内容大小（${value.length}字节）超过最大限制（${MAX_SIZE}字节），将不会保存到浏览器缓存中。`);
         alerted.current = true;
       }
+      setUseCanvas(true);
     }
   };
   const [themeInfo, setThemeInfo] = useState<ThemeRegistration | undefined>(undefined);
@@ -57,7 +60,7 @@ export default function DataViewerApp() {
               config={{
                 themeInfo,
                 withToaster: true,
-                withThemeChange: true,
+                useCanvas: useCanvas,
               }}
             />
           ) : (
