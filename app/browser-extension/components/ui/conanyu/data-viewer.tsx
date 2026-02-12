@@ -930,7 +930,10 @@ function CanvasInnerViewer(props: InnerViewerProps & { className?: string }) {
   };
 
   const getInteraction = (n: ViewerNode, pointer: string) => {
-    const iProps = { data: n.data, depth: n.depth, config, onDataChange: onValueChange, pointer };
+    const onNodeDataChange = (value: unknown) => {
+      applyUpdateValue(pointer, value);
+    };
+    const iProps = { data: n.data, depth: n.depth, config, onDataChange: onNodeDataChange, pointer };
     const custom = config?.additionalInteraction?.(iProps);
     if (custom?.highPriority) return custom;
     return defaultInteraction(iProps) || custom;
