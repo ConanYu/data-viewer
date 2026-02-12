@@ -1940,7 +1940,7 @@ function DataViewerIntl(props: DataViewerIntlProps) {
     return [t.bg, t.fg, r];
   }, [data, highlighter, themeInfo, props.highlightPointer]);
 
-  const Exhibition = () => {
+  const exhibition = useMemo(() => {
     const PreWrapper = ({ children }: { children?: ReactNode }) => {
       return (
         <pre
@@ -2003,13 +2003,25 @@ function DataViewerIntl(props: DataViewerIntlProps) {
         </PreWrapper>
       );
     }
-  };
+  }, [
+    bgColor,
+    fgColor,
+    root,
+    withButtonGroup,
+    props.preClassName,
+    data,
+    mode,
+    themeInfo,
+    props.config,
+    openMove,
+    shouldForceCanvas,
+  ]);
 
   return (
     <>
       {withToaster && <Toaster />}
       <div className={cn('relative overflow-auto scrollbar-thin', props.className)}>
-        <Exhibition />
+        {exhibition}
         {withButtonGroup && !data.error && data.data !== undefined && (
           <div className="absolute right-4 top-2">
             <ButtonGroup>
