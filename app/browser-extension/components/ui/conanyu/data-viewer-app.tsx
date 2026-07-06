@@ -1,9 +1,9 @@
 import { DataViewer } from '@/components/ui/conanyu/data-viewer';
+import { getInitialDataViewerContent } from '@/components/ui/conanyu/data-viewer-welcome';
 import { Textarea } from '@/components/ui/textarea';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ThemeRegistration } from 'shiki';
 import JSONBigInt from 'json-bigint';
-import OneLight from 'tm-themes/themes/one-light.json';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 const JSON = JSONBigInt({ useNativeBigInt: true });
@@ -11,7 +11,9 @@ const JSON = JSONBigInt({ useNativeBigInt: true });
 const localStorageContentKey = 'conanyu-data-viewer.content' as const;
 
 export default function DataViewerApp() {
-  const [content, setContentState] = useState('');
+  const [content, setContentState] = useState(() =>
+    getInitialDataViewerContent(localStorage.getItem(localStorageContentKey)),
+  );
   const alerted = useRef(false);
   const setContent = (value: string) => {
     setContentState(value);
@@ -26,11 +28,6 @@ export default function DataViewerApp() {
     }
   };
   const [themeInfo, setThemeInfo] = useState<ThemeRegistration | undefined>(undefined);
-  useEffect(() => {
-    if (localStorage.getItem(localStorageContentKey)) {
-      setContentState(localStorage.getItem(localStorageContentKey)!);
-    }
-  }, []);
 
   return (
     <div className="m-4">
@@ -60,12 +57,7 @@ export default function DataViewerApp() {
               }}
             />
           ) : (
-            <div
-              className="h-full rounded-md"
-              style={{
-                backgroundColor: themeInfo?.colors?.['editor.background'] || OneLight.colors['editor.background'],
-              }}
-            />
+            <div className="h-full rounded-md bg-white" />
           )}
         </div>
       </div>

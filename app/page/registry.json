@@ -82,6 +82,10 @@
           "type": "registry:component"
         },
         {
+          "path": "src/components/ui/conanyu/data-viewer-welcome.ts",
+          "type": "registry:component"
+        },
+        {
           "path": "src/components/ui/conanyu/data-viewer-app.tsx",
           "type": "registry:component"
         }
